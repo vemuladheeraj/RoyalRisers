@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Initialize Firestore Data - Royal Risers Cup</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .init-container {
+      max-width: 600px;
+      margin: 50px auto;
+      padding: var(--spacing-lg);
+    }
+    .status {
+      margin: var(--spacing-md) 0;
+      padding: var(--spacing-sm);
+      border-radius: var(--radius-md);
+    }
+    .status.success {
+      background: rgba(76, 175, 80, 0.2);
+      border: 1px solid var(--success);
+      color: var(--success);
+    }
+    .status.error {
+      background: rgba(244, 67, 54, 0.2);
+      border: 1px solid var(--error);
+      color: var(--error);
+    }
+    .status.info {
+      background: rgba(0, 78, 137, 0.2);
+      border: 1px solid var(--secondary);
+      color: var(--secondary);
+    }
+  </style>
+</head>
+<body>
+  <div class="init-container">
+    <div class="card">
+      <h1>Initialize Firestore Data</h1>
+      <p class="text-muted">This script will create the initial tournament and season structure in Firestore.</p>
+      
+      <div id="statusMessages"></div>
+      
+      <form id="initForm">
+        <div class="form-group">
+          <label for="tournamentName" class="form-label">Tournament Name</label>
+          <input type="text" id="tournamentName" class="form-input" value="Royal Risers Cup" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="tournamentDescription" class="form-label">Tournament Description</label>
+          <textarea id="tournamentDescription" class="form-textarea" rows="3" required>A premier cricket tournament bringing together the best teams and players for competitive cricket action.</textarea>
+        </div>
+        
+        <div class="form-group">
+          <label for="organizer" class="form-label">Organizer Name</label>
+          <input type="text" id="organizer" class="form-input" value="Royal Risers Cricket Association" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="seasonId" class="form-label">Season ID</label>
+          <input type="text" id="seasonId" class="form-input" value="s1-2026" required>
+          <small class="text-muted">Format: s1-2026, s2-2026, etc.</small>
+        </div>
+        
+        <button type="submit" class="btn btn-primary" id="initBtn">Initialize Data</button>
+      </form>
+      
+      <div style="margin-top: var(--spacing-lg); padding-top: var(--spacing-lg); border-top: 1px solid var(--border);">
+        <p class="text-muted"><strong>Note:</strong> You must be logged in as an admin user for this to work.</p>
+        <p class="text-muted">If you're not logged in, <a href="admin/login.html">login here first</a>.</p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    /**
+     * Firestore Data Initialization Script
+     * Run this once to create the initial tournament and season structure
+     */
+    import { auth } from './js/firebase-init.js';
+    import { db } from './js/firebase-init.js';
+    import { TOURNAMENT_ID } from './firebase-config.js';
+    import { 
+      signInWithEmailAndPassword,
+      onAuthStateChanged 
+    } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import {
+      doc,
+      setDoc,
+      getDoc
+    } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+    const statusMessages = document.getElementById('statusMessages');
+    const initForm = document.getElementById('initForm');
+    const initBtn = document.getElementById('initBtn');
+
+    /**
+     * Show status message
+     */
+    function showStatus(message, type = 'info') {
+      const statusDiv = document.createElement('div');
+      statusDiv.className = `status ${type}`;
+      statusDiv.textContent = message;
+      statusMessages.appendChild(statusDiv);
+      statusMessages.scrollTop = statusMessages.scrollHeight;
+    }
+
+    /**
+     * Check if user is authenticated
+     */
+    function checkAuth() {
+      return new Promise((resolve) => {
+        onAuthStateChanged(auth, (user) => {
+          if (user) {
+            showStatus('✓ Authenticated as: ' + user.email, 'success');
+            resolve(user);
+          } else {
+            showStatus('⚠ Not authenticated. Please login first.', 'error');
+            resolve(null);
+          }
+        });
+      });
+    }
+
+    /**
+     * Initialize tournament data
+     */
+    async function initializeTournament(tournamentName, description, organizer) {
+      try {
+        showStatus('Creating tournament document...', 'info');
+        
+        const tournamentRef = doc(db, 'tournaments', TOURNAMENT_ID);
+        const tournamentSnap = await getDoc(tournamentRef);
+        
+        if (tournamentSnap.exists()) {
+          showStatus('⚠ Tournament document already exists. Updating meta...', 'info');
+        }
+        
+        await setDoc(tournamentRef, {
+          meta: {
+            name: tournamentName,
+            description: description,
+            organizer: organizer
+          }
+        }, { merge: true });
+        
+        showStatus('✓ Tournament document created/updated successfully!', 'success');
+        return true;
+      } catch (error) {
+        showStatus('✗ Error creating tournament: ' + error.message, 'error');
+        console.error('Tournament init error:', error);
+        return false;
+      }
+    }
+
+    /**
+     * Initialize season data
+     */
+    async function initializeSeason(seasonId) {
+      try {
+        showStatus(`Creating season document: ${seasonId}...`, 'info');
+        
+        const seasonRef = doc(db, 'tournaments', TOURNAMENT_ID, 'seasons', seasonId);
+        const seasonSnap = await getDoc(seasonRef);
+        
+        if (seasonSnap.exists()) {
+          showStatus(`⚠ Season ${seasonId} already exists. Skipping...`, 'info');
+          return true;
+        }
+        
+        // Create empty season document
+        await setDoc(seasonRef, {
+          // Empty document - admin panel will populate it
+        });
+        
+        showStatus(`✓ Season ${seasonId} created successfully!`, 'success');
+        return true;
+      } catch (error) {
+        showStatus('✗ Error creating season: ' + error.message, 'error');
+        console.error('Season init error:', error);
+        return false;
+      }
+    }
+
+    /**
+     * Handle form submission
+     */
+    initForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      // Clear previous messages
+      statusMessages.innerHTML = '';
+      
+      // Check authentication
+      const user = await checkAuth();
+      if (!user) {
+        showStatus('Please login first at /admin/login.html', 'error');
+        return;
+      }
+      
+      // Disable button
+      initBtn.disabled = true;
+      initBtn.textContent = 'Initializing...';
+      
+      // Get form values
+      const tournamentName = document.getElementById('tournamentName').value.trim();
+      const tournamentDescription = document.getElementById('tournamentDescription').value.trim();
+      const organizer = document.getElementById('organizer').value.trim();
+      const seasonId = document.getElementById('seasonId').value.trim();
+      
+      if (!seasonId) {
+        showStatus('Please enter a season ID', 'error');
+        initBtn.disabled = false;
+        initBtn.textContent = 'Initialize Data';
+        return;
+      }
+      
+      try {
+        // Initialize tournament
+        const tournamentSuccess = await initializeTournament(tournamentName, tournamentDescription, organizer);
+        
+        if (tournamentSuccess) {
+          // Initialize season
+          const seasonSuccess = await initializeSeason(seasonId);
+          
+          if (seasonSuccess) {
+            showStatus('', 'info'); // Spacer
+            showStatus('🎉 Initialization complete!', 'success');
+            showStatus('You can now use the admin panel to add season data.', 'info');
+            showStatus('Redirecting to home page in 3 seconds...', 'info');
+            
+            setTimeout(() => {
+              window.location.href = 'index.html';
+            }, 3000);
+          }
+        }
+      } catch (error) {
+        showStatus('✗ Unexpected error: ' + error.message, 'error');
+        console.error('Init error:', error);
+      } finally {
+        initBtn.disabled = false;
+        initBtn.textContent = 'Initialize Data';
+      }
+    });
+
+    // Check auth on page load
+    checkAuth();
+  </script>
+</body>
+</html>

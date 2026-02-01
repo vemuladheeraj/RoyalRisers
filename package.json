@@ -1,0 +1,14 @@
+{
+  "name": "royal-risers-cup",
+  "version": "1.0.0",
+  "description": "Royal Risers Cup - Cricket Tournament Website",
+  "scripts": {
+    "start": "http-server -p 8000",
+    "dev": "http-server -p 8000 -o",
+    "optimize-images": "node scripts/optimize-images.js"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "sharp": "^0.33.5"
+  }
+}

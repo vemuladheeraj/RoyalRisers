@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Royal Risers Cup - Cricket Tournament</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <nav class="container">
+      <div class="logo">Royal Risers Cup</div>
+      <ul class="nav-links">
+        <li><a href="index.html" class="active">Home</a></li>
+        <li><a href="#" id="seasonLink" style="display: none;">Season</a></li>
+        <li class="season-dropdown" id="seasonDropdown" style="display: none;">
+          <select id="headerSeasonSelect">
+            <option value="">Select Season</option>
+          </select>
+        </li>
+        <li><a href="admin/login.html" class="admin-link">Admin</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- Hero - full viewport, diagonal background only -->
+  <section class="hero" id="heroSection">
+    <div class="hero-bg-graphic" aria-hidden="true"></div>
+    <div class="container hero-container-single">
+      <div class="hero-content">
+        <h1>Royal Risers Cup</h1>
+        <p class="tagline" id="heroTagline">Loading tournament information...</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <main class="container">
+    <!-- Why Royal Risers Cup -->
+    <section class="section">
+      <div class="section-divider" aria-hidden="true"></div>
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Why Royal Risers Cup</h2>
+        </div>
+        <div id="whyContent">
+          <p class="loading">Loading content...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Vision & Values -->
+    <section class="section section-with-bg">
+      <div class="section-divider" aria-hidden="true"></div>
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Vision & Values</h2>
+        </div>
+        <div id="visionContent">
+          <p class="loading">Loading content...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- About Organizer -->
+    <section class="section">
+      <div class="section-divider" aria-hidden="true"></div>
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">About the Organizer</h2>
+        </div>
+        <div id="organizerContent">
+          <p class="loading">Loading organizer information...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Follow on Instagram -->
+    <section class="section" id="instagramFollowSection" style="display: none;">
+      <div class="card">
+        <div class="instagram-cta">
+          <a href="#" id="instagramFollowLink" target="_blank" rel="noopener noreferrer" class="instagram-link">
+            <span class="instagram-icon" aria-hidden="true"></span>
+            <span class="instagram-label">Follow on Instagram</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <p class="text-muted">&copy; 2026 Royal Risers Cup. All rights reserved.</p>
+  </footer>
+
+  <script type="module" src="js/index.js"></script>
+</body>
+</html>

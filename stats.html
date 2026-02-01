@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Player Stats - Royal Risers Cup</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <nav class="container">
+      <div class="logo">Royal Risers Cup</div>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="#" id="seasonLink">Season</a></li>
+        <li><a href="#" id="fixturesLink">Fixtures</a></li>
+        <li><a href="#" id="pointsLink">Points Table</a></li>
+        <li><a href="#" id="teamsLink">Teams</a></li>
+        <li><a href="#" class="active">Stats</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- Page Header -->
+  <section class="hero hero-sub" id="heroSection">
+    <div class="hero-bg-graphic" aria-hidden="true"></div>
+    <div class="container">
+      <h1 id="pageTitle">Player Statistics</h1>
+      <p id="seasonInfo">Loading season information...</p>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <main class="container section">
+    <!-- Batting Stats -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Batting Statistics</h2>
+      </div>
+      <div id="battingStatsContent">
+        <p class="loading">Loading batting stats...</p>
+      </div>
+    </div>
+
+    <!-- Bowling Stats -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Bowling Statistics</h2>
+      </div>
+      <div id="bowlingStatsContent">
+        <p class="loading">Loading bowling stats...</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <p class="text-muted">&copy; 2026 Royal Risers Cup. All rights reserved.</p>
+  </footer>
+
+  <script type="module" src="js/stats.js"></script>
+</body>
+</html>

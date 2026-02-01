@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Points Table - Royal Risers Cup</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <nav class="container">
+      <div class="logo">Royal Risers Cup</div>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="#" id="seasonLink">Season</a></li>
+        <li><a href="#" id="fixturesLink">Fixtures</a></li>
+        <li><a href="#" class="active">Points Table</a></li>
+        <li><a href="#" id="teamsLink">Teams</a></li>
+        <li><a href="#" id="statsLink">Stats</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- Page Header -->
+  <section class="hero hero-sub" id="heroSection">
+    <div class="hero-bg-graphic" aria-hidden="true"></div>
+    <div class="container">
+      <h1 id="pageTitle">Points Table</h1>
+      <p id="seasonInfo">Loading season information...</p>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <main class="container section">
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">League Standings</h2>
+      </div>
+      <div id="pointsContent">
+        <p class="loading">Loading points table...</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <p class="text-muted">&copy; 2026 Royal Risers Cup. All rights reserved.</p>
+  </footer>
+
+  <script type="module" src="js/points.js"></script>
+</body>
+</html>

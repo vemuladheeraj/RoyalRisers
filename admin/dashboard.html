@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Royal Risers Cup</title>
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body class="admin-page">
+  <!-- Header -->
+  <header>
+    <nav class="container">
+      <div class="logo">Royal Risers Cup - Admin</div>
+      <div class="flex gap-md">
+        <select id="seasonSelect" class="form-select" style="max-width: 200px;">
+          <option value="">Loading seasons...</option>
+        </select>
+        <button id="addSeasonBtn" class="btn btn-primary btn-sm">+ Add Season</button>
+        <button id="logoutBtn" class="btn btn-outline btn-sm">Logout</button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Main Content -->
+  <main class="container section">
+    <div id="loadingState" class="loading">
+      <p>Loading dashboard...</p>
+    </div>
+
+    <div id="dashboardContent" style="display: none;">
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab active" data-tab="overview">Season Overview</button>
+        <button class="tab" data-tab="format">Tournament Format</button>
+        <button class="tab" data-tab="awards">Awards</button>
+        <button class="tab" data-tab="facilities">Facilities</button>
+        <button class="tab" data-tab="cost">Cost Structure</button>
+        <button class="tab" data-tab="payment">Payment Policy</button>
+        <button class="tab" data-tab="matches">Matches</button>
+        <button class="tab" data-tab="teams">Teams</button>
+        <button class="tab" data-tab="points">Points Table</button>
+        <button class="tab" data-tab="stats">Player Stats</button>
+        <button class="tab" data-tab="media">Media Gallery</button>
+        <button class="tab" data-tab="tournament">Tournament Settings</button>
+      </div>
+
+      <!-- Tab Contents -->
+      <!-- Overview Tab -->
+      <div class="tab-content active" id="tab-overview">
+        <div class="card">
+          <h2>Season Overview</h2>
+          <form id="overviewForm">
+            <div class="form-group">
+              <label for="overviewDescription" class="form-label">Description</label>
+              <textarea id="overviewDescription" class="form-textarea" rows="5"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Save Overview</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Format Tab -->
+      <div class="tab-content" id="tab-format">
+        <div class="card">
+          <h2>Tournament Format</h2>
+          <form id="formatForm">
+            <div class="form-group">
+              <label for="leagueMatches" class="form-label">League Matches</label>
+              <input type="text" id="leagueMatches" class="form-input">
+            </div>
+            <div class="form-group">
+              <label for="qualificationRules" class="form-label">Qualification Rules</label>
+              <textarea id="qualificationRules" class="form-textarea" rows="4"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Save Format</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Awards Tab -->
+      <div class="tab-content" id="tab-awards">
+        <div class="card">
+          <h2>Awards & Recognitions</h2>
+          <form id="awardsForm">
+            <div class="form-group">
+              <label class="form-label">Match Awards (one per line)</label>
+              <textarea id="matchAwards" class="form-textarea" rows="4" placeholder="Man of the Match&#10;Best Fielder"></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tournament Awards (one per line)</label>
+              <textarea id="tournamentAwards" class="form-textarea" rows="4" placeholder="Player of the Tournament&#10;Best Batsman"></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Team Awards (one per line)</label>
+              <textarea id="teamAwards" class="form-textarea" rows="4" placeholder="Champions&#10;Runner-up"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Save Awards</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Facilities Tab -->
+      <div class="tab-content" id="tab-facilities">
+        <div class="card">
+          <h2>Facilities</h2>
+          <form id="facilitiesForm">
+            <div class="form-group">
+              <label for="refreshments" class="form-label">Refreshments</label>
+              <input type="text" id="refreshments" class="form-input">
+            </div>
+            <div class="form-group">
+              <label for="liveStreaming" class="form-label">Live Streaming</label>
+              <input type="text" id="liveStreaming" class="form-input">
+            </div>
+            <div class="form-group">
+              <label for="streamingCost" class="form-label">Streaming Cost</label>
+              <input type="text" id="streamingCost" class="form-input">
+            </div>
+            <button type="submit" class="btn btn-primary">Save Facilities</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Cost Structure Tab -->
+      <div class="tab-content" id="tab-cost">
+        <div class="card">
+          <h2>Cost Structure</h2>
+          <form id="costForm">
+            <div class="form-group">
+              <label for="groundFee" class="form-label">Ground Fee</label>
+              <input type="text" id="groundFee" class="form-input">
+            </div>
+            <div class="form-group">
+              <label for="umpireFee" class="form-label">Umpire Fee</label>
+              <input type="text" id="umpireFee" class="form-input">
+            </div>
+            <div class="form-group">
+              <label for="refreshmentCost" class="form-label">Refreshment Cost</label>
+              <input type="text" id="refreshmentCost" class="form-input">
+            </div>
+            <div class="form-group">
+              <label for="totalPerMatch" class="form-label">Total Per Match</label>
+              <input type="text" id="totalPerMatch" class="form-input">
+            </div>
+            <button type="submit" class="btn btn-primary">Save Cost Structure</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Payment Policy Tab -->
+      <div class="tab-content" id="tab-payment">
+        <div class="card">
+          <h2>Advance Payment Policy</h2>
+          <form id="paymentForm">
+            <div class="form-group">
+              <label for="advanceMatchFee" class="form-label">Advance Match Fee</label>
+              <input type="text" id="advanceMatchFee" class="form-input">
+            </div>
+            <div class="form-group">
+              <label for="awardsContribution" class="form-label">Awards Contribution</label>
+              <input type="text" id="awardsContribution" class="form-input">
+            </div>
+            <div class="form-group">
+              <label for="totalAdvance" class="form-label">Total Advance</label>
+              <input type="text" id="totalAdvance" class="form-input">
+            </div>
+            <button type="submit" class="btn btn-primary">Save Payment Policy</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Matches Tab -->
+      <div class="tab-content" id="tab-matches">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Matches</h2>
+            <button id="addMatchBtn" class="btn btn-primary btn-sm">Add Match</button>
+          </div>
+          <div id="matchesList">
+            <p class="loading">Loading matches...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Teams Tab -->
+      <div class="tab-content" id="tab-teams">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Teams</h2>
+            <button id="addTeamBtn" class="btn btn-primary btn-sm">Add Team</button>
+          </div>
+          <div id="teamsList">
+            <p class="loading">Loading teams...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Points Table Tab -->
+      <div class="tab-content" id="tab-points">
+        <div class="card">
+          <h2>Points Table</h2>
+          <div id="pointsTableEditor">
+            <p class="loading">Loading points table...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Tab -->
+      <div class="tab-content" id="tab-stats">
+        <div class="card">
+          <h2>Player Statistics</h2>
+          <div id="statsEditor">
+            <p class="loading">Loading statistics...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Media Gallery Tab -->
+      <div class="tab-content" id="tab-media">
+        <div class="card">
+          <h2>Media Gallery</h2>
+          <div class="alert alert-info mb-md">
+            <strong>📸 Where to Add Photos & Videos:</strong><br>
+            Use the fields below to add media URLs. They will appear in the Media Gallery section on the season page.
+          </div>
+          
+          <!-- Images Section -->
+          <div class="form-group">
+            <label class="form-label">
+              🖼️ Images (Direct Image URLs)
+              <span class="badge badge-primary" style="margin-left: var(--spacing-xs);">Required</span>
+            </label>
+            <textarea id="mediaImages" class="form-textarea" rows="10" placeholder="Paste DIRECT image URLs here, one per line:&#10;&#10;https://lh3.googleusercontent.com/p/AF1QipN...&#10;https://lh3.googleusercontent.com/p/AF1QipM...&#10;https://example.com/image.jpg&#10;&#10;⚠️ IMPORTANT: You need DIRECT image URLs, not share links!"></textarea>
+            <div class="alert alert-info" style="margin-top: var(--spacing-sm);">
+              <strong>📸 How to get DIRECT Google Photos URLs:</strong><br><br>
+              <strong>⚠️ IMPORTANT:</strong> Share links like <code>photos.app.goo.gl/...</code> will NOT work as images!<br>
+              They will appear as clickable cards instead. To embed images, you need DIRECT image URLs.<br><br>
+              <strong>Method 1 (Easiest - Recommended):</strong><br>
+              1. Open Google Photos in your browser (photos.google.com)<br>
+              2. Click on the photo you want to use<br>
+              3. Right-click on the photo → "Copy image address" (or "Copy image link")<br>
+              4. Paste the URL here (should start with <code>lh3.googleusercontent.com</code>)<br><br>
+              <strong>Method 2 (From Share Link):</strong><br>
+              1. Share the photo → "Create link" (you'll get a link like <code>photos.app.goo.gl/...</code>)<br>
+              2. Open that share link in a new browser tab<br>
+              3. Right-click on the photo in that page → "Copy image address"<br>
+              4. Paste the direct URL here (starts with <code>lh3.googleusercontent.com</code>)<br><br>
+              <strong>Method 3 (Alternative Hosting):</strong><br>
+              • Use any direct image URL from Imgur, Dropbox, or other image hosting<br>
+              • URL should be a direct link to the image file
+            </div>
+          </div>
+
+          <!-- Videos Section -->
+          <div class="form-group">
+            <label class="form-label">
+              🎥 YouTube Videos (Video IDs or URLs)
+              <span class="badge badge-primary" style="margin-left: var(--spacing-xs);">Optional</span>
+            </label>
+            <textarea id="mediaVideos" class="form-textarea" rows="8" placeholder="Paste YouTube video URLs or IDs here, one per line:&#10;&#10;https://www.youtube.com/watch?v=dQw4w9WgXcQ&#10;https://youtu.be/dQw4w9WgXcQ&#10;dQw4w9WgXcQ&#10;&#10;💡 Tip: You can use full YouTube URLs or just the video ID"></textarea>
+            <small class="text-muted">
+              <strong>Accepted formats:</strong><br>
+              • Full URL: https://www.youtube.com/watch?v=VIDEO_ID<br>
+              • Short URL: https://youtu.be/VIDEO_ID<br>
+              • Video ID only: VIDEO_ID
+            </small>
+          </div>
+
+
+          <button type="button" id="saveMediaBtn" class="btn btn-primary">Save Media</button>
+          
+          <!-- Preview Section -->
+          <div id="mediaPreview" class="mt-lg" style="display: none;">
+            <h3 class="mb-md">Preview</h3>
+            <div id="mediaPreviewContent"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tournament Settings Tab -->
+      <div class="tab-content" id="tab-tournament">
+        <div class="card">
+          <h2>Tournament Settings</h2>
+          <p class="text-muted mb-md">Manage home page content and tournament information</p>
+          
+          <form id="tournamentForm">
+            <div class="form-group">
+              <label for="tournamentTagline" class="form-label">Hero Tagline</label>
+              <input type="text" id="tournamentTagline" class="form-input" placeholder="Built to nurture competitive street cricket">
+            </div>
+
+            <div class="form-group">
+              <label for="tournamentWhy" class="form-label">Why Royal Risers Cup</label>
+              <textarea id="tournamentWhy" class="form-textarea" rows="4" placeholder="Explain why the tournament was started..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="tournamentVision" class="form-label">Vision & Values</label>
+              <textarea id="tournamentVision" class="form-textarea" rows="4" placeholder="Describe the vision and values..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="tournamentOrganizer" class="form-label">Organizer Name</label>
+              <input type="text" id="tournamentOrganizer" class="form-input" placeholder="Organizer Name">
+            </div>
+
+            <div class="form-group">
+              <label for="tournamentOrganizerProfile" class="form-label">Organizer Profile</label>
+              <textarea id="tournamentOrganizerProfile" class="form-textarea" rows="3" placeholder="Short profile about the organizer..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="tournamentHeroImage" class="form-label">
+                🖼️ Hero Background Image URL
+                <span class="badge badge-primary" style="margin-left: var(--spacing-xs);">Optional</span>
+              </label>
+              <input type="url" id="tournamentHeroImage" class="form-input" placeholder="https://example.com/image.jpg or Firebase Storage URL">
+              <small class="text-muted">
+                <strong>Hero background:</strong> Use a direct image URL (e.g. Firebase Storage, Imgur, your own server). <strong>Google Photos URLs are not supported</strong>—they are often blocked when embedded (429 / NotSameSite). If left empty, the site uses the default stadium image from assets.
+              </small>
+              <div id="heroImagePreview" class="mt-sm" style="display: none;">
+                <img id="heroPreviewImg" src="" alt="Preview" style="max-width: 100%; max-height: 200px; border-radius: var(--radius-md); margin-top: var(--spacing-sm);">
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="tournamentInstagramUrl" class="form-label">
+                📱 Instagram Profile URL
+                <span class="badge badge-primary" style="margin-left: var(--spacing-xs);">Optional</span>
+              </label>
+              <input type="url" id="tournamentInstagramUrl" class="form-input" placeholder="https://www.instagram.com/yourprofile/">
+              <small class="text-muted">Add your Instagram profile URL. A "Follow on Instagram" button will appear at the bottom of season pages.</small>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Save Tournament Settings</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modals will be inserted here by JS -->
+  <div id="modalContainer"></div>
+
+  <script type="module" src="js/dashboard.js"></script>
+</body>
+</html>
