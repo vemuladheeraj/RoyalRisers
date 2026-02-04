@@ -281,7 +281,7 @@ function showSeasonModal() {
         </div>
         <div style="display: flex; gap: var(--spacing-sm);">
           <button type="submit" class="btn btn-primary">Create Season</button>
-          <button type="button" class="btn btn-outline" onclick="this.closest('[style*=\"position: fixed\"]').remove()">Cancel</button>
+          <button type="button" class="btn btn-outline" data-action="close-modal">Cancel</button>
         </div>
       </form>
     </div>
@@ -289,6 +289,11 @@ function showSeasonModal() {
   
   document.getElementById('modalContainer').appendChild(modal);
   
+  // Close modal
+  modal.querySelector('[data-action="close-modal"]').addEventListener('click', () => {
+    modal.remove();
+  });
+
   // Handle form submission
   modal.querySelector('#seasonForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -597,7 +602,7 @@ function showMatchModal(matchId = null) {
         </div>
         <div style="display: flex; gap: var(--spacing-sm);">
           <button type="submit" class="btn btn-primary">Save</button>
-          <button type="button" class="btn btn-outline" onclick="this.closest('[style*=\"position: fixed\"]').remove()">Cancel</button>
+          <button type="button" class="btn btn-outline" data-action="close-modal">Cancel</button>
         </div>
       </form>
     </div>
@@ -605,6 +610,11 @@ function showMatchModal(matchId = null) {
   
   document.getElementById('modalContainer').appendChild(modal);
   
+  // Close modal
+  modal.querySelector('[data-action="close-modal"]').addEventListener('click', () => {
+    modal.remove();
+  });
+
   // Populate if editing
   if (matchId) {
     // Load match data
@@ -754,7 +764,7 @@ function showTeamModal(teamId = null) {
         </div>
         <div style="display: flex; gap: var(--spacing-sm);">
           <button type="submit" class="btn btn-primary">Save</button>
-          <button type="button" class="btn btn-outline" onclick="this.closest('[style*=\"position: fixed\"]').remove()">Cancel</button>
+          <button type="button" class="btn btn-outline" data-action="close-modal">Cancel</button>
         </div>
       </form>
     </div>
@@ -762,6 +772,11 @@ function showTeamModal(teamId = null) {
   
   document.getElementById('modalContainer').appendChild(modal);
   
+  // Close modal
+  modal.querySelector('[data-action="close-modal"]').addEventListener('click', () => {
+    modal.remove();
+  });
+
   // Populate if editing
   if (teamId) {
     getSeasonTeams(currentSeasonId).then(teams => {
@@ -834,6 +849,18 @@ async function loadPointsTable() {
     
     let html = '<p class="text-muted mb-md">Edit points table. Add or update team standings.</p>';
     html += '<button id="addPointsRowBtn" class="btn btn-primary btn-sm mb-md">Add Team</button>';
+    html += `
+      <div class="form-grid-header">
+        <span>Team</span>
+        <span>Played</span>
+        <span>Won</span>
+        <span>Lost</span>
+        <span>Tied</span>
+        <span>Points</span>
+        <span>NRR</span>
+        <span>Actions</span>
+      </div>
+    `;
     html += '<div id="pointsTableRows"></div>';
     html += '<button id="savePointsBtn" class="btn btn-primary mt-md">Save Points Table</button>';
     
@@ -888,15 +915,39 @@ function createPointsRow(team, index) {
   row.className = 'card';
   row.style.marginBottom = 'var(--spacing-sm)';
   row.innerHTML = `
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: var(--spacing-sm);">
-      <input type="text" name="team" class="form-input" placeholder="Team Name" value="${team.team || ''}" required>
-      <input type="number" name="played" class="form-input" placeholder="Played" value="${team.played || 0}" min="0">
-      <input type="number" name="won" class="form-input" placeholder="Won" value="${team.won || 0}" min="0">
-      <input type="number" name="lost" class="form-input" placeholder="Lost" value="${team.lost || 0}" min="0">
-      <input type="number" name="tied" class="form-input" placeholder="Tied" value="${team.tied || 0}" min="0">
-      <input type="number" name="points" class="form-input" placeholder="Points" value="${team.points || 0}" min="0">
-      <input type="number" name="nrr" class="form-input" placeholder="NRR" step="0.001" value="${team.nrr || 0}">
-      <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.card').remove()">Remove</button>
+    <div class="form-grid">
+      <div class="form-field">
+        <span class="form-field-label">Team</span>
+        <input type="text" name="team" class="form-input" placeholder="Team Name" value="${team.team || ''}" required>
+      </div>
+      <div class="form-field">
+        <span class="form-field-label">Played</span>
+        <input type="number" name="played" class="form-input" placeholder="Played" value="${team.played || 0}" min="0">
+      </div>
+      <div class="form-field">
+        <span class="form-field-label">Won</span>
+        <input type="number" name="won" class="form-input" placeholder="Won" value="${team.won || 0}" min="0">
+      </div>
+      <div class="form-field">
+        <span class="form-field-label">Lost</span>
+        <input type="number" name="lost" class="form-input" placeholder="Lost" value="${team.lost || 0}" min="0">
+      </div>
+      <div class="form-field">
+        <span class="form-field-label">Tied</span>
+        <input type="number" name="tied" class="form-input" placeholder="Tied" value="${team.tied || 0}" min="0">
+      </div>
+      <div class="form-field">
+        <span class="form-field-label">Points</span>
+        <input type="number" name="points" class="form-input" placeholder="Points" value="${team.points || 0}" min="0">
+      </div>
+      <div class="form-field">
+        <span class="form-field-label">NRR</span>
+        <input type="number" name="nrr" class="form-input" placeholder="NRR" step="0.001" value="${team.nrr || 0}">
+      </div>
+      <div class="form-field form-field-action">
+        <span class="form-field-label">Actions</span>
+        <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.card').remove()">Remove</button>
+      </div>
     </div>
   `;
   return row;
@@ -918,11 +969,31 @@ async function loadStats() {
       </div>
       <div id="battingStatsEditor" class="tab-content active">
         <button id="addBattingRowBtn" class="btn btn-primary btn-sm mb-md">Add Player</button>
+        <div class="form-grid-header">
+          <span>Player</span>
+          <span>Team</span>
+          <span>Matches</span>
+          <span>Innings</span>
+          <span>Runs</span>
+          <span>Balls</span>
+          <span>50s</span>
+          <span>100s</span>
+          <span>Actions</span>
+        </div>
         <div id="battingRows"></div>
         <button id="saveBattingBtn" class="btn btn-primary mt-md">Save Batting Stats</button>
       </div>
       <div id="bowlingStatsEditor" class="tab-content">
         <button id="addBowlingRowBtn" class="btn btn-primary btn-sm mb-md">Add Player</button>
+        <div class="form-grid-header">
+          <span>Player</span>
+          <span>Team</span>
+          <span>Matches</span>
+          <span>Wickets</span>
+          <span>Runs</span>
+          <span>Overs</span>
+          <span>Actions</span>
+        </div>
         <div id="bowlingRows"></div>
         <button id="saveBowlingBtn" class="btn btn-primary mt-md">Save Bowling Stats</button>
       </div>
@@ -1032,16 +1103,43 @@ function createBattingRow(player, index) {
   row.className = 'card';
   row.style.marginBottom = 'var(--spacing-sm)';
   row.innerHTML = `
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: var(--spacing-sm);">
-      <input type="text" name="name" class="form-input" placeholder="Player Name" value="${player.name || ''}" required>
-      <input type="text" name="team" class="form-input" placeholder="Team" value="${player.team || ''}">
-      <input type="number" name="matches" class="form-input" placeholder="Matches" value="${player.matches || 0}" min="0">
-      <input type="number" name="innings" class="form-input" placeholder="Innings" value="${player.innings || 0}" min="0">
-      <input type="number" name="runs" class="form-input" placeholder="Runs" value="${player.runs || 0}" min="0">
-      <input type="number" name="balls" class="form-input" placeholder="Balls" value="${player.balls || 0}" min="0">
-      <input type="number" name="fifties" class="form-input" placeholder="50s" value="${player.fifties || 0}" min="0">
-      <input type="number" name="hundreds" class="form-input" placeholder="100s" value="${player.hundreds || 0}" min="0">
-      <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.card').remove()">Remove</button>
+    <div class="form-grid">
+      <div class="form-field">
+        <span class="form-field-label">Player</span>
+        <input type="text" name="name" class="form-input" placeholder="Player Name" value="${player.name || ''}" required>
+      </div>
+      <div class="form-field">
+        <span class="form-field-label">Team</span>
+        <input type="text" name="team" class="form-input" placeholder="Team" value="${player.team || ''}">
+      </div>
+      <div class="form-field">
+        <span class="form-field-label">Matches</span>
+        <input type="number" name="matches" class="form-input" placeholder="Matches" value="${player.matches || 0}" min="0">
+      </div>
+      <div class="form-field">
+        <span class="form-field-label">Innings</span>
+        <input type="number" name="innings" class="form-input" placeholder="Innings" value="${player.innings || 0}" min="0">
+      </div>
+      <div class="form-field">
+        <span class="form-field-label">Runs</span>
+        <input type="number" name="runs" class="form-input" placeholder="Runs" value="${player.runs || 0}" min="0">
+      </div>
+      <div class="form-field">
+        <span class="form-field-label">Balls</span>
+        <input type="number" name="balls" class="form-input" placeholder="Balls" value="${player.balls || 0}" min="0">
+      </div>
+      <div class="form-field">
+        <span class="form-field-label">50s</span>
+        <input type="number" name="fifties" class="form-input" placeholder="50s" value="${player.fifties || 0}" min="0">
+      </div>
+      <div class="form-field">
+        <span class="form-field-label">100s</span>
+        <input type="number" name="hundreds" class="form-input" placeholder="100s" value="${player.hundreds || 0}" min="0">
+      </div>
+      <div class="form-field form-field-action">
+        <span class="form-field-label">Actions</span>
+        <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.card').remove()">Remove</button>
+      </div>
     </div>
   `;
   return row;
@@ -1055,14 +1153,35 @@ function createBowlingRow(player, index) {
   row.className = 'card';
   row.style.marginBottom = 'var(--spacing-sm)';
   row.innerHTML = `
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: var(--spacing-sm);">
-      <input type="text" name="name" class="form-input" placeholder="Player Name" value="${player.name || ''}" required>
-      <input type="text" name="team" class="form-input" placeholder="Team" value="${player.team || ''}">
-      <input type="number" name="matches" class="form-input" placeholder="Matches" value="${player.matches || 0}" min="0">
-      <input type="number" name="wickets" class="form-input" placeholder="Wickets" value="${player.wickets || 0}" min="0">
-      <input type="number" name="runs" class="form-input" placeholder="Runs" value="${player.runs || 0}" min="0">
-      <input type="number" name="overs" class="form-input" placeholder="Overs" step="0.1" value="${player.overs || 0}" min="0">
-      <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.card').remove()">Remove</button>
+    <div class="form-grid">
+      <div class="form-field">
+        <span class="form-field-label">Player</span>
+        <input type="text" name="name" class="form-input" placeholder="Player Name" value="${player.name || ''}" required>
+      </div>
+      <div class="form-field">
+        <span class="form-field-label">Team</span>
+        <input type="text" name="team" class="form-input" placeholder="Team" value="${player.team || ''}">
+      </div>
+      <div class="form-field">
+        <span class="form-field-label">Matches</span>
+        <input type="number" name="matches" class="form-input" placeholder="Matches" value="${player.matches || 0}" min="0">
+      </div>
+      <div class="form-field">
+        <span class="form-field-label">Wickets</span>
+        <input type="number" name="wickets" class="form-input" placeholder="Wickets" value="${player.wickets || 0}" min="0">
+      </div>
+      <div class="form-field">
+        <span class="form-field-label">Runs</span>
+        <input type="number" name="runs" class="form-input" placeholder="Runs" value="${player.runs || 0}" min="0">
+      </div>
+      <div class="form-field">
+        <span class="form-field-label">Overs</span>
+        <input type="number" name="overs" class="form-input" placeholder="Overs" step="0.1" value="${player.overs || 0}" min="0">
+      </div>
+      <div class="form-field form-field-action">
+        <span class="form-field-label">Actions</span>
+        <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.card').remove()">Remove</button>
+      </div>
     </div>
   `;
   return row;

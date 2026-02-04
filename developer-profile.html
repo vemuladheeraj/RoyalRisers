@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Teams - Royal Risers Cup</title>
+  <title>Developer Profile - Royal Risers Cup</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -13,11 +13,7 @@
       <a class="logo" href="index.html">Royal Risers Cup</a>
       <ul class="nav-links">
         <li><a href="index.html">Home</a></li>
-        <li><a href="#" id="seasonLink">Season</a></li>
-        <li><a href="#" id="fixturesLink">Fixtures</a></li>
-        <li><a href="#" id="pointsLink">Points Table</a></li>
-        <li><a href="#" class="active">Teams</a></li>
-        <li><a href="#" id="statsLink">Stats</a></li>
+        <li><a href="developer-profile.html" class="active">Developer Profile</a></li>
       </ul>
     </nav>
   </header>
@@ -26,15 +22,29 @@
   <section class="hero hero-sub" id="heroSection">
     <div class="hero-bg-graphic" aria-hidden="true"></div>
     <div class="container">
-      <h1 id="pageTitle">Teams</h1>
-      <p id="seasonInfo">Loading season information...</p>
+      <h1>Developer Profile</h1>
+      <p class="tagline">Portfolio and contact highlights</p>
     </div>
   </section>
 
   <!-- Main Content -->
   <main class="container section">
-    <div id="teamsContent">
-      <p class="loading">Loading teams...</p>
+    <div class="card dev-profile-card">
+      <div class="dev-profile">
+        <div class="dev-avatar">
+          <img src="assets/dheeraj_dev.jpg" alt="Developer portrait" loading="lazy">
+        </div>
+        <div class="dev-details">
+          <div class="dev-kicker">Portfolio</div>
+          <h2 class="dev-name">Dheeraj Vemula</h2>
+          <p class="text-muted">Explore the full developer portfolio, projects, and services.</p>
+          <p class="text-muted">Email: <a href="mailto:appworks.dheeraj@gmail.com">appworks.dheeraj@gmail.com</a></p>
+          <a class="btn btn-primary dev-cta" href="https://vemuladheerajportfolio.netlify.app/" target="_blank" rel="noopener noreferrer">
+            <span class="portfolio-icon" aria-hidden="true"></span>
+            Visit Portfolio
+          </a>
+        </div>
+      </div>
     </div>
   </main>
 
@@ -47,7 +57,5 @@
     </div>
     <p class="text-muted">&copy; 2026 Royal Risers Cup. All rights reserved.</p>
   </footer>
-
-  <script type="module" src="js/teams.js"></script>
 </body>
 </html>
