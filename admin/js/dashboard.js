@@ -1284,10 +1284,20 @@ async function loadTournamentSettings() {
       document.getElementById('tournamentWhy').value = meta.why || '';
       document.getElementById('tournamentVision').value = meta.vision || '';
       document.getElementById('tournamentOrganizer').value = meta.organizer || '';
+      document.getElementById('tournamentOrganizerTitle').value = meta.organizerTitle || '';
       document.getElementById('tournamentOrganizerProfile').value = meta.organizerProfile || '';
+      document.getElementById('tournamentOrganizerPhoto').value = meta.organizerPhoto || '';
       document.getElementById('tournamentHeroImage').value = meta.heroImage || '';
       document.getElementById('tournamentInstagramUrl').value = meta.instagramUrl || '';
       
+      // Preview organizer photo
+      if (meta.organizerPhoto) {
+        const organizerPreview = document.getElementById('organizerPhotoPreview');
+        const organizerPreviewImg = document.getElementById('organizerPreviewImg');
+        organizerPreviewImg.src = meta.organizerPhoto;
+        organizerPreview.style.display = 'block';
+      }
+
       // Preview hero image
       if (meta.heroImage) {
         const preview = document.getElementById('heroImagePreview');
@@ -1301,6 +1311,19 @@ async function loadTournamentSettings() {
         const url = e.target.value.trim();
         const preview = document.getElementById('heroImagePreview');
         const previewImg = document.getElementById('heroPreviewImg');
+        if (url) {
+          previewImg.src = url;
+          preview.style.display = 'block';
+        } else {
+          preview.style.display = 'none';
+        }
+      });
+
+      // Organizer photo preview on change
+      document.getElementById('tournamentOrganizerPhoto').addEventListener('input', (e) => {
+        const url = e.target.value.trim();
+        const preview = document.getElementById('organizerPhotoPreview');
+        const previewImg = document.getElementById('organizerPreviewImg');
         if (url) {
           previewImg.src = url;
           preview.style.display = 'block';
@@ -1326,7 +1349,9 @@ async function handleTournamentSubmit(e) {
       why: document.getElementById('tournamentWhy').value.trim(),
       vision: document.getElementById('tournamentVision').value.trim(),
       organizer: document.getElementById('tournamentOrganizer').value.trim(),
+      organizerTitle: document.getElementById('tournamentOrganizerTitle').value.trim(),
       organizerProfile: document.getElementById('tournamentOrganizerProfile').value.trim(),
+      organizerPhoto: document.getElementById('tournamentOrganizerPhoto').value.trim(),
       heroImage: document.getElementById('tournamentHeroImage').value.trim(),
       instagramUrl: document.getElementById('tournamentInstagramUrl').value.trim()
     };

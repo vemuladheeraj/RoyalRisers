@@ -49,9 +49,27 @@ async function loadTournamentMeta() {
       }
 
       if (meta.organizer) {
+        const organizerTitle = meta.organizerTitle ? `<p class="organizer-title">${meta.organizerTitle}</p>` : '';
+        const organizerProfile = meta.organizerProfile ? `<p>${meta.organizerProfile}</p>` : '';
+        const organizerPhotoUrl = meta.organizerPhoto || 'assets/ashu.jpg';
+        const organizerPhoto = organizerPhotoUrl
+          ? `
+            <div class="organizer-photo-wrap">
+              <img src="${organizerPhotoUrl}" alt="${meta.organizer} photo" loading="lazy" onerror="this.closest('.organizer-photo-wrap').style.display='none'">
+            </div>
+          `
+          : '';
+
         organizerContent.innerHTML = `
-          <p><strong>${meta.organizer}</strong></p>
-          ${meta.organizerProfile ? `<p>${meta.organizerProfile}</p>` : ''}
+          <div class="organizer-layout">
+            <div class="organizer-text">
+              <div class="organizer-kicker">Organizer</div>
+              <h3 class="organizer-name">${meta.organizer}</h3>
+              ${organizerTitle}
+              ${organizerProfile}
+            </div>
+            ${organizerPhoto}
+          </div>
         `;
       } else {
         organizerContent.innerHTML = '<p>Tournament organizer information coming soon.</p>';
@@ -121,14 +139,13 @@ if (headerSeasonSelect) {
 async function renderInstagramFollow() {
   try {
     const meta = await getTournamentMeta();
-    const instagramSection = document.getElementById('instagramFollowSection');
     const instagramLink = document.getElementById('instagramFollowLink');
 
-    if (meta && meta.instagramUrl && instagramSection && instagramLink) {
+    if (meta && meta.instagramUrl && instagramLink) {
       instagramLink.href = meta.instagramUrl;
-      instagramSection.style.display = 'block';
-    } else if (instagramSection) {
-      instagramSection.style.display = 'none';
+      instagramLink.style.display = 'inline-flex';
+    } else if (instagramLink) {
+      instagramLink.style.display = 'none';
     }
   } catch (error) {
     console.error('Error loading Instagram follow:', error);

@@ -12,8 +12,7 @@
     <nav class="container">
       <div class="logo">Royal Risers Cup</div>
       <ul class="nav-links">
-        <li><a href="index.html" class="active">Home</a></li>
-        <li><a href="#" id="seasonLink" style="display: none;">Season</a></li>
+        <li><a href="index.html" class="active">Home</a></li>        
         <li class="season-dropdown" id="seasonDropdown" style="display: none;">
           <select id="headerSeasonSelect">
             <option value="">Select Season</option>
@@ -26,6 +25,9 @@
 
   <!-- Hero - full viewport, diagonal background only -->
   <section class="hero" id="heroSection">
+    <video class="hero-video" autoplay muted loop playsinline preload="metadata" aria-hidden="true" poster="assets/hero-bg.jpg">
+      <source src="assets/headervidio.mp4" type="video/mp4">
+    </video>
     <div class="hero-bg-graphic" aria-hidden="true"></div>
     <div class="container hero-container-single">
       <div class="hero-content">
@@ -76,21 +78,14 @@
       </div>
     </section>
 
-    <!-- Follow on Instagram -->
-    <section class="section" id="instagramFollowSection" style="display: none;">
-      <div class="card">
-        <div class="instagram-cta">
-          <a href="#" id="instagramFollowLink" target="_blank" rel="noopener noreferrer" class="instagram-link">
-            <span class="instagram-icon" aria-hidden="true"></span>
-            <span class="instagram-label">Follow on Instagram</span>
-          </a>
-        </div>
-      </div>
-    </section>
   </main>
 
   <!-- Footer -->
   <footer>
+    <div class="footer-links">
+      <a href="#" id="instagramFollowLink" target="_blank" rel="noopener noreferrer">Instagram</a>
+      <a href="https://cricheroes.com/team-profile/9230662/royal-risers-hyd/profile" target="_blank" rel="noopener noreferrer">CricHeroes</a>
+    </div>
     <p class="text-muted">&copy; 2026 Royal Risers Cup. All rights reserved.</p>
   </footer>
 
