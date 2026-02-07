@@ -60,7 +60,7 @@
         <div class="form-group">
           <label for="seasonId" class="form-label">Season ID</label>
           <input type="text" id="seasonId" class="form-input" value="s1-2026" required>
-          <small class="text-muted">Format: s1-2026, s2-2026, etc.</small>
+          <small class="text-muted">Use any name you like (e.g., season-1, winter-2026)</small>
         </div>
         
         <button type="submit" class="btn btn-primary" id="initBtn">Initialize Data</button>
@@ -169,9 +169,9 @@
           return true;
         }
         
-        // Create empty season document
+        // Create empty season document with createdAt
         await setDoc(seasonRef, {
-          // Empty document - admin panel will populate it
+          createdAt: new Date().toISOString()
         });
         
         showStatus(`✓ Season ${seasonId} created successfully!`, 'success');

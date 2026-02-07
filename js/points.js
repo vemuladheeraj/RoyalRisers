@@ -1,6 +1,6 @@
 /**
- * Points Table Page Logic
- * Displays the points table for the selected season
+ * Points Table Page Logic - Modernized
+ * Displays league standings with enhanced UI
  */
 import { getPointsTable, getSeasonData, applyTournamentHeroImage } from './firestore-helpers.js';
 
@@ -10,7 +10,6 @@ const tournamentId = urlParams.get('tournamentId') || 'royal-risers-cup';
 const seasonId = urlParams.get('seasonId');
 
 // DOM Elements
-const pageTitle = document.getElementById('pageTitle');
 const seasonInfo = document.getElementById('seasonInfo');
 const pointsContent = document.getElementById('pointsContent');
 const seasonLink = document.getElementById('seasonLink');
@@ -24,79 +23,125 @@ const statsLink = document.getElementById('statsLink');
 function updateNavLinks() {
   if (seasonId) {
     const baseUrl = `?tournamentId=${tournamentId}&seasonId=${seasonId}`;
-    seasonLink.href = `season.html${baseUrl}`;
-    fixturesLink.href = `fixtures.html${baseUrl}`;
-    teamsLink.href = `teams.html${baseUrl}`;
-    statsLink.href = `stats.html${baseUrl}`;
+    if (seasonLink) seasonLink.href = `season.html${baseUrl}`;
+    if (fixturesLink) fixturesLink.href = `fixtures.html${baseUrl}`;
+    if (teamsLink) teamsLink.href = `teams.html${baseUrl}`;
+    if (statsLink) statsLink.href = `stats.html${baseUrl}`;
   }
 }
 
 /**
  * Render points table
  */
-function renderPointsTable(pointsData) {
-  if (!pointsData || pointsData.length === 0) {
-    pointsContent.innerHTML = '<p class="empty-state">Points table not available for this season.</p>';
+function renderPointsTable(points) {
+  if (!pointsContent) return;
+  
+  if (!points || points.length === 0) {
+    pointsContent.innerHTML = `
+      <div class="empty-state">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.5;">
+          <path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/>
+        </svg>
+        <p>Points table not available yet.</p>
+      </div>
+    `;
     return;
   }
 
-  let html = '<div class="table-container"><table><thead><tr>';
-  html += '<th>Rank</th><th>Team</th><th>Played</th><th>Won</th><th>Lost</th><th>Tied</th><th>Points</th><th>NRR</th>';
-  html += '</tr></thead><tbody>';
+  // Sort by points (descending)
+  const sortedPoints = [...points].sort((a, b) => (b.points || 0) - (a.points || 0));
 
-  // Sort by points (descending), then by NRR (descending)
-  const sorted = [...pointsData].sort((a, b) => {
-    if (b.points !== a.points) return b.points - a.points;
-    return (b.nrr || 0) - (a.nrr || 0);
+  let html = `
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 50px;">#</th>
+            <th>Team</th>
+            <th>P</th>
+            <th>W</th>
+            <th>L</th>
+            <th>T</th>
+            <th>N/R</th>
+            <th>Points</th>
+            <th>NRR</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  sortedPoints.forEach((team, index) => {
+    const position = index + 1;
+    const rowClass = position <= 4 ? 'table-row-highlight' : '';
+    
+    html += `
+      <tr class="${rowClass}">
+        <td><strong>${position}</strong></td>
+        <td><strong>${team.teamName || 'Unknown'}</strong></td>
+        <td>${team.played || 0}</td>
+        <td>${team.wins || 0}</td>
+        <td>${team.losses || 0}</td>
+        <td>${team.ties || 0}</td>
+        <td>${team.nr || 0}</td>
+        <td><strong>${team.points || 0}</strong></td>
+        <td>${typeof team.netRunRate === 'number' ? team.netRunRate.toFixed(3) : (team.netRunRate || '0.000')}</td>
+      </tr>
+    `;
   });
 
-  sorted.forEach((team, index) => {
-    html += '<tr>';
-    html += `<td>${index + 1}</td>`;
-    html += `<td><strong>${team.team || 'Unknown'}</strong></td>`;
-    html += `<td>${team.played || 0}</td>`;
-    html += `<td>${team.won || 0}</td>`;
-    html += `<td>${team.lost || 0}</td>`;
-    html += `<td>${team.tied || 0}</td>`;
-    html += `<td><strong>${team.points || 0}</strong></td>`;
-    html += `<td>${team.nrr !== undefined ? team.nrr.toFixed(3) : '0.000'}</td>`;
-    html += '</tr>';
-  });
+  html += `
+        </tbody>
+      </table>
+    </div>
+    <p class="text-muted" style="margin-top: var(--spacing-md); font-size: 0.875rem;">
+      <strong>P</strong> = Played | <strong>W</strong> = Wins | <strong>L</strong> = Losses | <strong>T</strong> = Ties | <strong>N/R</strong> = No Result | <strong>Points</strong> = Total Points | <strong>NRR</strong> = Net Run Rate
+    </p>
+  `;
 
-  html += '</tbody></table></div>';
   pointsContent.innerHTML = html;
 }
 
 /**
- * Load points table data
+ * Load points data
  */
-async function loadPointsTable() {
-  await applyTournamentHeroImage(document.getElementById('heroSection'));
+async function loadPoints() {
+  const heroSection = document.getElementById('heroSection');
+  if (heroSection) {
+    await applyTournamentHeroImage(heroSection);
+  }
+  
   if (!seasonId) {
-    pageTitle.textContent = 'Points Table - Error';
-    seasonInfo.textContent = 'No season selected';
-    pointsContent.innerHTML = '<p class="alert alert-error">Please select a season from the home page.</p>';
+    if (seasonInfo) seasonInfo.textContent = 'No season selected';
+    if (pointsContent) {
+      pointsContent.innerHTML = '<div class="alert alert-error">Please select a season from the home page.</div>';
+    }
     return;
   }
 
   try {
     // Load season info
     const seasonData = await getSeasonData(seasonId);
-    if (seasonData) {
+    if (seasonData && seasonInfo) {
       const seasonDisplay = seasonId.replace('s', 'Season ').replace('-', ' ');
       seasonInfo.textContent = seasonDisplay;
     }
 
-    // Load points table
-    const pointsData = await getPointsTable(seasonId);
-    renderPointsTable(pointsData);
+    // Load points
+    const points = await getPointsTable(seasonId);
+    renderPointsTable(points);
     updateNavLinks();
 
   } catch (error) {
-    console.error('Error loading points table:', error);
-    pointsContent.innerHTML = '<p class="alert alert-error">Error loading points table. Please try again later.</p>';
+    console.error('Error loading points:', error);
+    if (pointsContent) {
+      pointsContent.innerHTML = '<div class="alert alert-error">Error loading points table. Please try again later.</div>';
+    }
   }
 }
 
-// Initialize page
-loadPointsTable();
+// Initialize
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', loadPoints);
+} else {
+  loadPoints();
+}

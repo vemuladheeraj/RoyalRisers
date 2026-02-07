@@ -11,6 +11,5 @@ export const firebaseConfig = {
   appId: "1:881143098233:web:d9f39df1886fcd2ff55da8"
 };
 
-// Tournament and Season IDs
+// Tournament ID (fixed for this project)
 export const TOURNAMENT_ID = "royal-risers-cup";
-export const DEFAULT_SEASON_ID = "s1-2026";

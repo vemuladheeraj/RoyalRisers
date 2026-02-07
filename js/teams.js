@@ -1,6 +1,6 @@
 /**
- * Teams Page Logic
- * Displays all teams for the selected season
+ * Teams Page Logic - Modernized
+ * Displays all teams for the selected season with search functionality
  */
 import { getSeasonTeams, getSeasonData, applyTournamentHeroImage } from './firestore-helpers.js';
 
@@ -17,6 +17,10 @@ const seasonLink = document.getElementById('seasonLink');
 const fixturesLink = document.getElementById('fixturesLink');
 const pointsLink = document.getElementById('pointsLink');
 const statsLink = document.getElementById('statsLink');
+const teamSearch = document.getElementById('teamSearch');
+
+// Store teams data for filtering
+let allTeams = [];
 
 /**
  * Update navigation links
@@ -24,39 +28,62 @@ const statsLink = document.getElementById('statsLink');
 function updateNavLinks() {
   if (seasonId) {
     const baseUrl = `?tournamentId=${tournamentId}&seasonId=${seasonId}`;
-    seasonLink.href = `season.html${baseUrl}`;
-    fixturesLink.href = `fixtures.html${baseUrl}`;
-    pointsLink.href = `points.html${baseUrl}`;
-    statsLink.href = `stats.html${baseUrl}`;
+    if (seasonLink) seasonLink.href = `season.html${baseUrl}`;
+    if (fixturesLink) fixturesLink.href = `fixtures.html${baseUrl}`;
+    if (pointsLink) pointsLink.href = `points.html${baseUrl}`;
+    if (statsLink) statsLink.href = `stats.html${baseUrl}`;
   }
 }
 
 /**
- * Render teams
+ * Render teams with modern card design
  */
 function renderTeams(teams) {
+  if (!teamsContent) return;
+  
   if (!teams || teams.length === 0) {
-    teamsContent.innerHTML = '<p class="empty-state">No teams registered for this season.</p>';
+    teamsContent.innerHTML = `
+      <div class="empty-state">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        <p>No teams registered for this season.</p>
+      </div>
+    `;
     return;
   }
 
-  let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--spacing-md);">';
+  let html = '<div class="team-grid">';
 
-  teams.forEach(team => {
-    html += '<div class="card">';
-    html += `<h3 style="color: var(--primary); margin-bottom: var(--spacing-sm);">${team.name || 'Unknown Team'}</h3>`;
+  teams.forEach((team, index) => {
+    const teamInitial = (team.name || 'U').charAt(0).toUpperCase();
+    const captainName = team.captain || 'TBD';
+    const playersCount = team.players ? team.players.length : 0;
     
-    if (team.captain) {
-      html += `<p><strong>Captain:</strong> ${team.captain}</p>`;
-    }
-    if (team.players && team.players.length > 0) {
-      html += `<p><strong>Players:</strong> ${team.players.length}</p>`;
-    }
-    if (team.description) {
-      html += `<p class="text-muted" style="margin-top: var(--spacing-sm);">${team.description}</p>`;
-    }
-    
-    html += '</div>';
+    html += `
+      <div class="team-card" style="animation-delay: ${index * 50}ms;">
+        <div class="team-card-header">
+          <div class="team-avatar">${teamInitial}</div>
+          <div class="team-info">
+            <h4>${team.name || 'Unknown Team'}</h4>
+            <span class="team-captain">Capt. ${captainName}</span>
+          </div>
+        </div>
+        <div class="flex flex-between" style="margin-top: var(--spacing-md);">
+          <span class="team-players-count">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+            </svg>
+            ${playersCount} Players
+          </span>
+        </div>
+        ${team.description ? `<p class="text-muted" style="margin-top: var(--spacing-md); font-size: 0.875rem;">${team.description}</p>` : ''}
+      </div>
+    `;
   });
 
   html += '</div>';
@@ -64,35 +91,99 @@ function renderTeams(teams) {
 }
 
 /**
+ * Filter teams by search query
+ */
+function filterTeams(query) {
+  const normalizedQuery = query.toLowerCase().trim();
+  
+  if (!normalizedQuery) {
+    renderTeams(allTeams);
+    return;
+  }
+
+  const filtered = allTeams.filter(team => {
+    const nameMatch = team.name && team.name.toLowerCase().includes(normalizedQuery);
+    const captainMatch = team.captain && team.captain.toLowerCase().includes(normalizedQuery);
+    return nameMatch || captainMatch;
+  });
+
+  renderTeams(filtered);
+}
+
+/**
+ * Setup search functionality
+ */
+function setupSearch() {
+  if (teamSearch) {
+    teamSearch.addEventListener('input', (e) => {
+      filterTeams(e.target.value);
+    });
+    
+    // Clear search on escape
+    teamSearch.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        teamSearch.value = '';
+        filterTeams('');
+      }
+    });
+  }
+}
+
+/**
  * Load teams data
  */
 async function loadTeams() {
-  await applyTournamentHeroImage(document.getElementById('heroSection'));
+  // Apply hero image
+  const heroSection = document.getElementById('heroSection');
+  if (heroSection) {
+    await applyTournamentHeroImage(heroSection);
+  }
+  
   if (!seasonId) {
-    pageTitle.textContent = 'Teams - Error';
-    seasonInfo.textContent = 'No season selected';
-    teamsContent.innerHTML = '<p class="alert alert-error">Please select a season from the home page.</p>';
+    if (pageTitle) pageTitle.textContent = 'Teams - Error';
+    if (seasonInfo) seasonInfo.textContent = 'No season selected';
+    if (teamsContent) {
+      teamsContent.innerHTML = `
+        <div class="alert alert-error">
+          <strong>No Season Selected</strong><br>
+          Please select a season from the <a href="index.html">home page</a>.
+        </div>
+      `;
+    }
     return;
   }
 
   try {
     // Load season info
     const seasonData = await getSeasonData(seasonId);
-    if (seasonData) {
+    if (seasonData && seasonInfo) {
       const seasonDisplay = seasonId.replace('s', 'Season ').replace('-', ' ');
       seasonInfo.textContent = seasonDisplay;
     }
 
     // Load teams
     const teams = await getSeasonTeams(seasonId);
-    renderTeams(teams);
+    allTeams = teams || [];
+    renderTeams(allTeams);
     updateNavLinks();
+    setupSearch();
 
   } catch (error) {
     console.error('Error loading teams:', error);
-    teamsContent.innerHTML = '<p class="alert alert-error">Error loading teams. Please try again later.</p>';
+    if (teamsContent) {
+      teamsContent.innerHTML = `
+        <div class="alert alert-error">
+          <strong>Error Loading Teams</strong><br>
+          Unable to load teams. Please try again later.
+        </div>
+      `;
+    }
   }
 }
 
 // Initialize page
-loadTeams();
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', loadTeams);
+} else {
+  loadTeams();
+}

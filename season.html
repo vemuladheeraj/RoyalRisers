@@ -5,12 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Season Overview - Royal Risers Cup</title>
   <link rel="stylesheet" href="css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
 <body>
-  <!-- Header -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
   <header>
-    <nav class="container">
-      <a class="logo" href="index.html">Royal Risers Cup</a>
+    <nav class="container" aria-label="Main navigation">
+      <a class="logo" href="index.html">
+        <span class="logo-icon" aria-hidden="true"></span>
+        Royal Risers Cup
+      </a>
+      <button class="mobile-menu-toggle" aria-label="Toggle navigation menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
       <ul class="nav-links">
         <li><a href="index.html">Home</a></li>
         <li><a href="#" id="fixturesLink">Fixtures</a></li>
@@ -21,20 +30,24 @@
     </nav>
   </header>
 
-  <!-- Season Banner -->
   <section class="hero hero-sub" id="heroSection">
-    <div class="hero-bg-graphic" aria-hidden="true"></div>
+    <div class="hero-bg-graphic"></div>
     <div class="container">
+      <nav aria-label="Breadcrumb" class="breadcrumb">
+        <ol class="breadcrumb-list">
+          <li class="breadcrumb-item"><a href="index.html" class="breadcrumb-home" aria-label="Home">Home</a></li>
+          <li class="breadcrumb-item active" aria-current="page">Season</li>
+        </ol>
+      </nav>
       <h1 id="seasonTitle">Loading Season...</h1>
     </div>
   </section>
 
-  <!-- Main Content -->
-  <main class="container section">
+  <main class="container section" id="main-content">
     <!-- Overview -->
     <section class="card">
       <div class="card-header">
-        <h2 class="card-title">Overview</h2>
+        <h2 class="card-title">📋 Overview</h2>
       </div>
       <div id="overviewContent">
         <p class="loading">Loading season overview...</p>
@@ -44,17 +57,17 @@
     <!-- Tournament Format -->
     <section class="card">
       <div class="card-header">
-        <h2 class="card-title">Tournament Format</h2>
+        <h2 class="card-title">🏆 Tournament Format</h2>
       </div>
       <div id="formatContent">
         <p class="loading">Loading format details...</p>
       </div>
     </section>
 
-    <!-- Awards & Recognitions -->
+    <!-- Awards -->
     <section class="card">
       <div class="card-header">
-        <h2 class="card-title">Awards & Recognitions</h2>
+        <h2 class="card-title">🎖️ Awards & Recognitions</h2>
       </div>
       <div id="awardsContent">
         <p class="loading">Loading awards information...</p>
@@ -64,7 +77,7 @@
     <!-- Facilities -->
     <section class="card">
       <div class="card-header">
-        <h2 class="card-title">Facilities</h2>
+        <h2 class="card-title">🏠 Facilities</h2>
       </div>
       <div id="facilitiesContent">
         <p class="loading">Loading facilities information...</p>
@@ -74,17 +87,17 @@
     <!-- Cost Structure -->
     <section class="card">
       <div class="card-header">
-        <h2 class="card-title">Cost Structure</h2>
+        <h2 class="card-title">💰 Cost Structure</h2>
       </div>
       <div id="costContent">
         <p class="loading">Loading cost structure...</p>
       </div>
     </section>
 
-    <!-- Advance Payment Policy -->
+    <!-- Payment Policy -->
     <section class="card">
       <div class="card-header">
-        <h2 class="card-title">Advance Payment Policy</h2>
+        <h2 class="card-title">💳 Advance Payment Policy</h2>
       </div>
       <div id="paymentContent">
         <p class="loading">Loading payment policy...</p>
@@ -101,12 +114,12 @@
       </div>
     </section>
     
-    <!-- Media Placeholder (shown when no media) -->
+    <!-- Media Placeholder -->
     <section class="card" id="mediaPlaceholder" style="display: none;">
       <div class="card-header">
         <h2 class="card-title">📸 Media Gallery</h2>
       </div>
-      <div class="media-placeholder" style="min-height: 200px;">
+      <div class="media-placeholder">
         <div class="media-placeholder-icon">📸</div>
         <div class="media-placeholder-text">
           No media added yet<br>
@@ -120,39 +133,70 @@
     <!-- Quick Links -->
     <section class="card">
       <div class="card-header">
-        <h2 class="card-title">Quick Links</h2>
+        <h2 class="card-title">🚀 Quick Links</h2>
       </div>
       <div class="quick-links">
-        <a href="#" id="fixturesBtn" class="btn btn-outline">View Fixtures</a>
-        <a href="#" id="pointsBtn" class="btn btn-outline">Points Table</a>
-        <a href="#" id="teamsBtn" class="btn btn-outline">Teams</a>
-        <a href="#" id="statsBtn" class="btn btn-outline">Player Stats</a>
+        <a href="#" id="fixturesBtn" class="btn btn-outline">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          Fixtures
+        </a>
+        <a href="#" id="pointsBtn" class="btn btn-outline">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/>
+          </svg>
+          Points Table
+        </a>
+        <a href="#" id="teamsBtn" class="btn btn-outline">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          </svg>
+          Teams
+        </a>
+        <a href="#" id="statsBtn" class="btn btn-outline">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+          </svg>
+          Player Stats
+        </a>
       </div>
     </section>
 
-    <!-- Follow on Instagram -->
+    <!-- Instagram Follow -->
     <section class="card" id="instagramFollowSection" style="display: none;">
-      <div style="text-align: center; padding: var(--spacing-lg);">
-        <a href="#" id="instagramFollowLink" target="_blank" rel="noopener noreferrer" style="display: inline-flex; flex-direction: column; align-items: center; gap: var(--spacing-sm); text-decoration: none; color: var(--text-primary); transition: transform 0.2s ease;">
-          <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #833ab4 0%, #fd1d1d 50%, #fcb045 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: var(--shadow-md);">
-            📱
-          </div>
-          <div style="font-weight: 600; font-size: 1rem;">Follow on Instagram</div>
+      <div class="instagram-cta">
+        <a href="#" id="instagramFollowLink" target="_blank" rel="noopener noreferrer" class="instagram-link">
+          <div class="instagram-icon"></div>
+          <span class="instagram-label">Follow on Instagram</span>
         </a>
       </div>
     </section>
   </main>
 
-  <!-- Footer -->
   <footer>
-    <div class="footer-links">
-      <a href="index.html">Home</a>
-      <a href="developer-profile.html">Developer Profile</a>
-      <a href="https://cricheroes.com/team-profile/9230662/royal-risers-hyd/profile" target="_blank" rel="noopener noreferrer">CricHeroes</a>
+    <div class="container">
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="developer-profile.html">Developer Profile</a>
+        <a href="https://cricheroes.com/team-profile/9230662/royal-risers-hyd/profile" target="_blank">CricHeroes</a>
+      </div>
+      <p class="text-muted">&copy; 2026 Royal Risers Cup. All rights reserved.</p>
     </div>
-    <p class="text-muted">&copy; 2026 Royal Risers Cup. All rights reserved.</p>
   </footer>
 
   <script type="module" src="js/season.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const menuToggle = document.querySelector('.mobile-menu-toggle');
+      const navLinks = document.querySelector('.nav-links');
+      if (menuToggle && navLinks) {
+        menuToggle.addEventListener('click', function() {
+          this.setAttribute('aria-expanded', navLinks.classList.toggle('active') ? 'true' : 'false');
+          navLinks.classList.toggle('active');
+        });
+      }
+    });
+  </script>
 </body>
 </html>

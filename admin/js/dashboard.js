@@ -1,8 +1,8 @@
 /**
- * Admin Dashboard Logic
- * Handles all CRUD operations for season data
+ * Admin Dashboard Logic - Modernized
+ * Handles all CRUD operations for season data with enhanced UX
  */
-import { requireAuth, logout, onAuthChange } from '../../js/auth-helpers.js';
+import { requireAuth, logout } from '../../js/auth-helpers.js';
 import { 
   getAllSeasons, 
   getSeasonData, 
@@ -25,15 +25,16 @@ import {
   getTournamentMeta,
   updateTournamentMeta
 } from '../../js/firestore-helpers.js';
-import { DEFAULT_SEASON_ID } from '../../firebase-config.js';
 
 // State
 let currentSeasonId = null;
 let currentSeasonData = null;
+let seasons = []; // Store seasons list globally
 
 // DOM Elements
 const loadingState = document.getElementById('loadingState');
 const dashboardContent = document.getElementById('dashboardContent');
+const noSeasonContent = document.getElementById('noSeasonContent');
 const seasonSelect = document.getElementById('seasonSelect');
 const logoutBtn = document.getElementById('logoutBtn');
 const tabs = document.querySelectorAll('.tab');
@@ -69,22 +70,86 @@ async function init() {
     // Load seasons
     await loadSeasons();
     
-    // Set default season
-    if (seasonSelect.value) {
-      await loadSeasonData(seasonSelect.value);
+    // Check if seasons exist
+    if (seasons.length === 0) {
+      // Show "no season" state - only show Settings tab
+      showNoSeasonState();
+      // Load tournament settings (irrespective of seasons)
+      await loadTournamentSettings();
+    } else {
+      // Show dashboard first
+      if (loadingState) loadingState.style.display = 'none';
+      if (dashboardContent) dashboardContent.style.display = 'block';
+      
+      // Set default season
+      if (seasonSelect.value) {
+        await loadSeasonData(seasonSelect.value);
+      }
+      
+      // Load dashboard stats (after dashboard is visible)
+      await loadDashboardStats();
+      
+      // Load tournament settings (irrespective of seasons)
+      await loadTournamentSettings();
     }
-    
-    // Show dashboard
-    loadingState.style.display = 'none';
-    dashboardContent.style.display = 'block';
     
     // Setup event listeners
     setupEventListeners();
     
   } catch (error) {
     console.error('Dashboard init error:', error);
-    // Auth guard will redirect if not authenticated
   }
+}
+
+/**
+ * Show no seasons state - only display Settings tab
+ */
+function showNoSeasonState() {
+  // Hide loading, show no-season content
+  if (loadingState) loadingState.style.display = 'none';
+  if (noSeasonContent) noSeasonContent.style.display = 'block';
+  if (dashboardContent) dashboardContent.style.display = 'none';
+  
+  // Hide all tabs except Settings
+  tabs.forEach(tab => {
+    if (tab.dataset.tab !== 'tournament') {
+      tab.style.display = 'none';
+    } else {
+      tab.style.display = 'flex';
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+    }
+  });
+  
+  // Hide all tab contents except tournament
+  tabContents.forEach(content => {
+    if (content.id !== 'tab-tournament') {
+      content.classList.remove('active');
+      content.style.display = 'none';
+    } else {
+      content.classList.add('active');
+      content.style.display = 'block';
+    }
+  });
+}
+
+/**
+ * Show dashboard with all tabs
+ */
+function showDashboardState() {
+  if (noSeasonContent) noSeasonContent.style.display = 'none';
+  if (dashboardContent) dashboardContent.style.display = 'block';
+  if (loadingState) loadingState.style.display = 'none';
+  
+  // Show all tabs
+  tabs.forEach(tab => {
+    tab.style.display = 'flex';
+  });
+  
+  // Show all tab contents
+  tabContents.forEach(content => {
+    content.style.display = '';
+  });
 }
 
 /**
@@ -92,19 +157,25 @@ async function init() {
  */
 function setupEventListeners() {
   // Season selector
-  seasonSelect.addEventListener('change', async (e) => {
-    if (e.target.value) {
-      await loadSeasonData(e.target.value);
-    }
-  });
+  if (seasonSelect) {
+    seasonSelect.addEventListener('change', async (e) => {
+      if (e.target.value) {
+        await loadSeasonData(e.target.value);
+        // Reload tournament settings when switching seasons
+        await loadTournamentSettings();
+      }
+    });
+  }
   
   // Logout
-  logoutBtn.addEventListener('click', async () => {
-    await logout();
-    window.location.href = 'login.html';
-  });
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+      await logout();
+      window.location.href = 'login.html';
+    });
+  }
   
-  // Tab switching
+  // Tab switching with ARIA support
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
       const tabId = tab.dataset.tab;
@@ -113,24 +184,76 @@ function setupEventListeners() {
   });
   
   // Form submissions
-  overviewForm.addEventListener('submit', handleOverviewSubmit);
-  formatForm.addEventListener('submit', handleFormatSubmit);
-  awardsForm.addEventListener('submit', handleAwardsSubmit);
-  facilitiesForm.addEventListener('submit', handleFacilitiesSubmit);
-  costForm.addEventListener('submit', handleCostSubmit);
-  paymentForm.addEventListener('submit', handlePaymentSubmit);
+  if (overviewForm) overviewForm.addEventListener('submit', handleOverviewSubmit);
+  if (formatForm) formatForm.addEventListener('submit', handleFormatSubmit);
+  if (awardsForm) awardsForm.addEventListener('submit', handleAwardsSubmit);
+  if (facilitiesForm) facilitiesForm.addEventListener('submit', handleFacilitiesSubmit);
+  if (costForm) costForm.addEventListener('submit', handleCostSubmit);
+  if (paymentForm) paymentForm.addEventListener('submit', handlePaymentSubmit);
   
   // Media and Tournament settings
-  document.getElementById('saveMediaBtn').addEventListener('click', handleMediaSave);
-  document.getElementById('tournamentForm').addEventListener('submit', handleTournamentSubmit);
+  const saveMediaBtn = document.getElementById('saveMediaBtn');
+  
+  if (saveMediaBtn) saveMediaBtn.addEventListener('click', handleMediaSave);
+  
+  // Tournament settings form in dashboard tab
+  const tournamentFormTab = document.getElementById('tournamentForm');
+  
+  if (tournamentFormTab) {
+    tournamentFormTab.addEventListener('submit', handleTournamentSubmit);
+  }
+
+  // Organizer photo preview (works for both forms)
+  const organizerPhotoInput = document.getElementById('tournamentOrganizerPhoto');
+  if (organizerPhotoInput) {
+    organizerPhotoInput.addEventListener('input', (e) => {
+      const url = e.target.value;
+      const preview = document.getElementById('organizerPhotoPreview');
+      const previewImg = document.getElementById('organizerPreviewImg');
+      if (url && preview && previewImg) {
+        previewImg.src = url;
+        preview.style.display = 'block';
+      } else if (preview) {
+        preview.style.display = 'none';
+      }
+    });
+  }
+  
+  // Organizer photo preview
+  if (organizerPhotoInput) {
+    organizerPhotoInput.addEventListener('input', (e) => {
+      const url = e.target.value;
+      const preview = document.getElementById('organizerPhotoPreview');
+      const previewImg = document.getElementById('organizerPreviewImg');
+      if (url && preview && previewImg) {
+        previewImg.src = url;
+        preview.style.display = 'block';
+      } else if (preview) {
+        preview.style.display = 'none';
+      }
+    });
+  }
+
+  // Points table form
+  const addPointsTeamForm = document.getElementById('addPointsTeamForm');
+  if (addPointsTeamForm) addPointsTeamForm.addEventListener('submit', handleAddPointsTeam);
+
+  // Stats forms
+  const addBattingStatsForm = document.getElementById('addBattingStatsForm');
+  const addBowlingStatsForm = document.getElementById('addBowlingStatsForm');
+  if (addBattingStatsForm) addBattingStatsForm.addEventListener('submit', handleAddBattingStats);
+  if (addBowlingStatsForm) addBowlingStatsForm.addEventListener('submit', handleAddBowlingStats);
   
   // Add buttons
-  addMatchBtn.addEventListener('click', () => showMatchModal());
-  addTeamBtn.addEventListener('click', () => showTeamModal());
-  addSeasonBtn.addEventListener('click', () => showSeasonModal());
+  if (addMatchBtn) addMatchBtn.addEventListener('click', () => showMatchModal());
+  if (addTeamBtn) addTeamBtn.addEventListener('click', () => showTeamModal());
+  if (addSeasonBtn) addSeasonBtn.addEventListener('click', () => showSeasonModal());
   
-  // Load tournament settings on init
-  loadTournamentSettings();
+  // Add Season button in no-season state
+  const addSeasonBtnNoState = document.getElementById('addSeasonBtnNoState');
+  if (addSeasonBtnNoState) {
+    addSeasonBtnNoState.addEventListener('click', () => showSeasonModal());
+  }
 }
 
 /**
@@ -138,13 +261,15 @@ function setupEventListeners() {
  */
 async function loadSeasons() {
   try {
-    const seasons = await getAllSeasons();
+    seasons = await getAllSeasons(); // Store globally
+    if (!seasonSelect) return;
+    
     seasonSelect.innerHTML = '<option value="">Select a season...</option>';
     
     seasons.forEach(season => {
       const option = document.createElement('option');
       option.value = season.id;
-      option.textContent = season.id.replace('s', 'Season ').replace('-', ' ');
+      option.textContent = season.id.replace(/-/g, ' '); // Handle custom names better
       seasonSelect.appendChild(option);
     });
     
@@ -153,9 +278,12 @@ async function loadSeasons() {
       seasonSelect.value = seasons[0].id;
       currentSeasonId = seasons[0].id;
     }
+    
   } catch (error) {
     console.error('Error loading seasons:', error);
-    seasonSelect.innerHTML = '<option value="">Error loading seasons</option>';
+    if (seasonSelect) {
+      seasonSelect.innerHTML = '<option value="">Error loading seasons</option>';
+    }
   }
 }
 
@@ -169,7 +297,6 @@ async function loadSeasonData(seasonId) {
     currentSeasonData = await getSeasonData(seasonId);
     
     if (!currentSeasonData) {
-      // Initialize empty season data
       currentSeasonData = {};
     }
     
@@ -183,9 +310,59 @@ async function loadSeasonData(seasonId) {
     await loadStats();
     await loadMedia();
     
+    // Load dashboard stats
+    await loadDashboardStats();
+    
   } catch (error) {
     console.error('Error loading season data:', error);
-    alert('Error loading season data');
+    showNotification('Error loading season data', 'error');
+  }
+}
+
+/**
+ * Load dashboard stats - Seasons, Teams, Matches, Players
+ */
+async function loadDashboardStats() {
+  try {
+    const seasons = await getAllSeasons();
+    
+    let totalTeams = 0;
+    let totalMatches = 0;
+    let totalPlayers = 0;
+    
+    // Fetch teams and matches from all seasons
+    for (const season of seasons) {
+      try {
+        const teams = await getSeasonTeams(season.id);
+        totalTeams += teams.length;
+        
+        // Count players from all teams
+        teams.forEach(team => {
+          if (team.players && Array.isArray(team.players)) {
+            totalPlayers += team.players.length;
+          }
+        });
+        
+        const matches = await getSeasonMatches(season.id);
+        totalMatches += matches.length;
+      } catch (e) {
+        console.warn(`Error loading data for season ${season.id}:`, e);
+      }
+    }
+    
+    // Update stat cards
+    const statSeasons = document.getElementById('statSeasons');
+    const statTeams = document.getElementById('statTeams');
+    const statMatches = document.getElementById('statMatches');
+    const statPlayers = document.getElementById('statPlayers');
+    
+    if (statSeasons) statSeasons.textContent = seasons.length;
+    if (statTeams) statTeams.textContent = totalTeams;
+    if (statMatches) statMatches.textContent = totalMatches;
+    if (statPlayers) statPlayers.textContent = totalPlayers;
+    
+  } catch (error) {
+    console.error('Error loading dashboard stats:', error);
   }
 }
 
@@ -194,48 +371,48 @@ async function loadSeasonData(seasonId) {
  */
 function populateForms() {
   // Overview
-  document.getElementById('overviewDescription').value = 
-    currentSeasonData?.overview?.description || '';
+  const overviewDesc = document.getElementById('overviewDescription');
+  if (overviewDesc) overviewDesc.value = currentSeasonData?.overview?.description || '';
   
   // Format
-  document.getElementById('leagueMatches').value = 
-    currentSeasonData?.format?.leagueMatches || '';
-  document.getElementById('qualificationRules').value = 
-    currentSeasonData?.format?.qualificationRules || '';
+  const leagueMatches = document.getElementById('leagueMatches');
+  const qualificationRules = document.getElementById('qualificationRules');
+  if (leagueMatches) leagueMatches.value = currentSeasonData?.format?.leagueMatches || '';
+  if (qualificationRules) qualificationRules.value = currentSeasonData?.format?.qualificationRules || '';
   
   // Awards
-  document.getElementById('matchAwards').value = 
-    (currentSeasonData?.awards?.matchAwards || []).join('\n');
-  document.getElementById('tournamentAwards').value = 
-    (currentSeasonData?.awards?.tournamentAwards || []).join('\n');
-  document.getElementById('teamAwards').value = 
-    (currentSeasonData?.awards?.teamAwards || []).join('\n');
+  const matchAwards = document.getElementById('matchAwards');
+  const tournamentAwards = document.getElementById('tournamentAwards');
+  const teamAwards = document.getElementById('teamAwards');
+  if (matchAwards) matchAwards.value = (currentSeasonData?.awards?.matchAwards || []).join('\n');
+  if (tournamentAwards) tournamentAwards.value = (currentSeasonData?.awards?.tournamentAwards || []).join('\n');
+  if (teamAwards) teamAwards.value = (currentSeasonData?.awards?.teamAwards || []).join('\n');
   
   // Facilities
-  document.getElementById('refreshments').value = 
-    currentSeasonData?.facilities?.refreshments || '';
-  document.getElementById('liveStreaming').value = 
-    currentSeasonData?.facilities?.liveStreaming || '';
-  document.getElementById('streamingCost').value = 
-    currentSeasonData?.facilities?.streamingCost || '';
+  const refreshments = document.getElementById('refreshments');
+  const liveStreaming = document.getElementById('liveStreaming');
+  const streamingCost = document.getElementById('streamingCost');
+  if (refreshments) refreshments.value = currentSeasonData?.facilities?.refreshments || '';
+  if (liveStreaming) liveStreaming.value = currentSeasonData?.facilities?.liveStreaming || '';
+  if (streamingCost) streamingCost.value = currentSeasonData?.facilities?.streamingCost || '';
   
   // Cost Structure
-  document.getElementById('groundFee').value = 
-    currentSeasonData?.costStructure?.groundFee || '';
-  document.getElementById('umpireFee').value = 
-    currentSeasonData?.costStructure?.umpireFee || '';
-  document.getElementById('refreshmentCost').value = 
-    currentSeasonData?.costStructure?.refreshmentCost || '';
-  document.getElementById('totalPerMatch').value = 
-    currentSeasonData?.costStructure?.totalPerMatch || '';
+  const groundFee = document.getElementById('groundFee');
+  const umpireFee = document.getElementById('umpireFee');
+  const refreshmentCost = document.getElementById('refreshmentCost');
+  const totalPerMatch = document.getElementById('totalPerMatch');
+  if (groundFee) groundFee.value = currentSeasonData?.costStructure?.groundFee || '';
+  if (umpireFee) umpireFee.value = currentSeasonData?.costStructure?.umpireFee || '';
+  if (refreshmentCost) refreshmentCost.value = currentSeasonData?.costStructure?.refreshmentCost || '';
+  if (totalPerMatch) totalPerMatch.value = currentSeasonData?.costStructure?.totalPerMatch || '';
   
   // Payment Policy
-  document.getElementById('advanceMatchFee').value = 
-    currentSeasonData?.paymentPolicy?.advanceMatchFee || '';
-  document.getElementById('awardsContribution').value = 
-    currentSeasonData?.paymentPolicy?.awardsContribution || '';
-  document.getElementById('totalAdvance').value = 
-    currentSeasonData?.paymentPolicy?.totalAdvance || '';
+  const advanceMatchFee = document.getElementById('advanceMatchFee');
+  const awardsContribution = document.getElementById('awardsContribution');
+  const totalAdvance = document.getElementById('totalAdvance');
+  if (advanceMatchFee) advanceMatchFee.value = currentSeasonData?.paymentPolicy?.advanceMatchFee || '';
+  if (awardsContribution) awardsContribution.value = currentSeasonData?.paymentPolicy?.awardsContribution || '';
+  if (totalAdvance) totalAdvance.value = currentSeasonData?.paymentPolicy?.totalAdvance || '';
 }
 
 /**
@@ -245,122 +422,559 @@ function switchTab(tabId) {
   tabs.forEach(tab => {
     if (tab.dataset.tab === tabId) {
       tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
     } else {
       tab.classList.remove('active');
+      tab.setAttribute('aria-selected', 'false');
     }
   });
   
   tabContents.forEach(content => {
     if (content.id === `tab-${tabId}`) {
       content.classList.add('active');
+      content.setAttribute('aria-hidden', 'false');
     } else {
       content.classList.remove('active');
+      content.setAttribute('aria-hidden', 'true');
     }
   });
+}
+
+/**
+ * Show notification
+ */
+function showNotification(message, type = 'info') {
+  const notification = document.createElement('div');
+  notification.className = `alert alert-${type}`;
+  notification.setAttribute('role', 'alert');
+  notification.setAttribute('aria-live', 'polite');
+  notification.style.cssText = `
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    max-width: 400px;
+    z-index: 2000;
+    animation: slideIn 0.3s ease;
+  `;
+  notification.textContent = message;
+  
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.style.animation = 'fadeOut 0.3s ease';
+    setTimeout(() => notification.remove(), 300);
+  }, 3000);
+}
+
+/**
+ * Create modern modal
+ */
+function createModal(title, content, actions) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay active';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-labelledby', 'modal-title');
+  
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-title" class="modal-title">${title}</h3>
+        <button type="button" class="modal-close" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body">${content}</div>
+      ${actions ? `<div class="modal-footer">${actions}</div>` : ''}
+    </div>
+  `;
+  
+  overlay.querySelector('.modal-close').addEventListener('click', () => {
+    overlay.classList.remove('active');
+    setTimeout(() => overlay.remove(), 300);
+  });
+  
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      overlay.classList.remove('active');
+      setTimeout(() => overlay.remove(), 300);
+    }
+  });
+  
+  document.body.appendChild(overlay);
+  return overlay;
 }
 
 /**
  * Show season creation modal
  */
 function showSeasonModal() {
-  const modal = document.createElement('div');
-  modal.style.cssText = `
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.7); display: flex; align-items: center;
-    justify-content: center; z-index: 1000;
-  `;
-  
-  modal.innerHTML = `
-    <div class="card" style="max-width: 500px; width: 90%;">
-      <h2>Create New Season</h2>
+  const modal = createModal(
+    'Create New Season',
+    `
       <form id="seasonForm">
         <div class="form-group">
-          <label class="form-label">Season ID</label>
-          <input type="text" id="newSeasonId" class="form-input" placeholder="e.g., s1-2026, s2-2026" required>
-          <small class="text-muted">Format: s1-2026, s2-2026, etc.</small>
-        </div>
-        <div style="display: flex; gap: var(--spacing-sm);">
-          <button type="submit" class="btn btn-primary">Create Season</button>
-          <button type="button" class="btn btn-outline" data-action="close-modal">Cancel</button>
+          <label for="newSeasonId" class="form-label">Season ID</label>
+          <input type="text" id="newSeasonId" class="form-input" placeholder="e.g., season-1, winter-2026" required>
+          <small class="text-muted">Use any name you like (no format restrictions)</small>
         </div>
       </form>
-    </div>
-  `;
+    `,
+    `
+      <button type="button" class="btn btn-secondary" data-action="close-modal">Cancel</button>
+      <button type="submit" form="seasonForm" class="btn btn-primary">Create Season</button>
+    `
+  );
   
-  document.getElementById('modalContainer').appendChild(modal);
-  
-  // Close modal
   modal.querySelector('[data-action="close-modal"]').addEventListener('click', () => {
-    modal.remove();
+    modal.classList.remove('active');
+    setTimeout(() => modal.remove(), 300);
   });
-
-  // Handle form submission
+  
   modal.querySelector('#seasonForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const seasonId = document.getElementById('newSeasonId').value.trim();
     
     if (!seasonId) {
-      alert('Please enter a season ID');
+      showNotification('Please enter a season ID', 'error');
       return;
-    }
-    
-    // Validate format (optional but helpful)
-    if (!/^s\d+-\d{4}$/.test(seasonId)) {
-      if (!confirm('Season ID format should be like "s1-2026". Continue anyway?')) {
-        return;
-      }
     }
     
     try {
       await createSeason(seasonId);
-      modal.remove();
+      modal.classList.remove('active');
+      setTimeout(() => modal.remove(), 300);
       await loadSeasons();
-      // Select the newly created season
-      seasonSelect.value = seasonId;
-      await loadSeasonData(seasonId);
-      alert('Season created successfully!');
+      
+      // Check if we now have seasons
+      if (seasons.length > 0) {
+        seasonSelect.value = seasonId;
+        await loadSeasonData(seasonId);
+        showDashboardState(); // Show full dashboard
+      }
+      
+      showNotification('Season created successfully!', 'success');
     } catch (error) {
       console.error('Error creating season:', error);
       if (error.message.includes('already exists')) {
-        alert('This season already exists. Please use a different ID.');
+        showNotification('This season already exists. Please use a different ID.', 'error');
       } else {
-        alert('Error creating season: ' + error.message);
+        showNotification('Error creating season: ' + error.message, 'error');
       }
     }
   });
 }
 
 /**
- * Form submission handlers
+ * Show match modal
  */
+function showMatchModal() {
+  if (!currentSeasonId) {
+    showNotification('Please select a season first', 'error');
+    return;
+  }
+  
+  const modal = createModal(
+    'Add New Match',
+    `
+      <form id="matchForm">
+        <div class="form-grid">
+          <div class="form-field">
+            <label class="form-field-label">Team 1</label>
+            <input type="text" id="matchTeam1" class="form-input" required>
+          </div>
+          <div class="form-field">
+            <label class="form-field-label">Team 2</label>
+            <input type="text" id="matchTeam2" class="form-input" required>
+          </div>
+          <div class="form-field">
+            <label class="form-field-label">Date</label>
+            <input type="date" id="matchDate" class="form-input">
+          </div>
+          <div class="form-field">
+            <label class="form-field-label">Venue</label>
+            <input type="text" id="matchVenue" class="form-input">
+          </div>
+          <div class="form-field">
+            <label class="form-field-label">Result</label>
+            <input type="text" id="matchResult" class="form-input" placeholder="e.g., Team1 won by 5 wickets">
+          </div>
+          <div class="form-field">
+            <label class="form-field-label">Status</label>
+            <select id="matchStatus" class="form-input">
+              <option value="upcoming">Upcoming</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+        </div>
+      </form>
+    `,
+    `
+      <button type="button" class="btn btn-secondary" data-action="close-modal">Cancel</button>
+      <button type="submit" form="matchForm" class="btn btn-primary">Add Match</button>
+    `
+  );
+  
+  modal.querySelector('[data-action="close-modal"]').addEventListener('click', () => {
+    modal.classList.remove('active');
+    setTimeout(() => modal.remove(), 300);
+  });
+  
+  modal.querySelector('#matchForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const matchData = {
+      team1: document.getElementById('matchTeam1').value,
+      team2: document.getElementById('matchTeam2').value,
+      date: document.getElementById('matchDate').value,
+      venue: document.getElementById('matchVenue').value,
+      result: document.getElementById('matchResult').value,
+      status: document.getElementById('matchStatus').value
+    };
+    
+    try {
+      await addMatch(currentSeasonId, matchData);
+      modal.classList.remove('active');
+      setTimeout(() => modal.remove(), 300);
+      await loadMatches();
+      showNotification('Match added successfully!', 'success');
+    } catch (error) {
+      console.error('Error adding match:', error);
+      showNotification('Error adding match', 'error');
+    }
+  });
+}
+
+/**
+ * Show team modal
+ */
+function showTeamModal() {
+  if (!currentSeasonId) {
+    showNotification('Please select a season first', 'error');
+    return;
+  }
+  
+  const modal = createModal(
+    'Add New Team',
+    `
+      <form id="teamForm">
+        <div class="form-group">
+          <label for="teamName" class="form-label">Team Name</label>
+          <input type="text" id="teamName" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label for="teamCaptain" class="form-label">Captain</label>
+          <input type="text" id="teamCaptain" class="form-input">
+        </div>
+        <div class="form-group">
+          <label for="teamPlayers" class="form-label">Players (comma separated)</label>
+          <textarea id="teamPlayers" class="form-textarea" rows="3" placeholder="Player 1, Player 2, Player 3..."></textarea>
+        </div>
+        <div class="form-group">
+          <label for="teamDescription" class="form-label">Description</label>
+          <textarea id="teamDescription" class="form-textarea" rows="2"></textarea>
+        </div>
+      </form>
+    `,
+    `
+      <button type="button" class="btn btn-secondary" data-action="close-modal">Cancel</button>
+      <button type="submit" form="teamForm" class="btn btn-primary">Add Team</button>
+    `
+  );
+  
+  modal.querySelector('[data-action="close-modal"]').addEventListener('click', () => {
+    modal.classList.remove('active');
+    setTimeout(() => modal.remove(), 300);
+  });
+  
+  modal.querySelector('#teamForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const teamData = {
+      name: document.getElementById('teamName').value,
+      captain: document.getElementById('teamCaptain').value,
+      players: document.getElementById('teamPlayers').value.split(',').map(p => p.trim()).filter(p => p),
+      description: document.getElementById('teamDescription').value
+    };
+    
+    try {
+      await addTeam(currentSeasonId, teamData);
+      modal.classList.remove('active');
+      setTimeout(() => modal.remove(), 300);
+      await loadTeams();
+      showNotification('Team added successfully!', 'success');
+    } catch (error) {
+      console.error('Error adding team:', error);
+      showNotification('Error adding team', 'error');
+    }
+  });
+}
+
+/**
+ * Load matches
+ */
+async function loadMatches() {
+  if (!matchesList) return;
+  
+  try {
+    const matches = await getSeasonMatches(currentSeasonId);
+    
+    if (!matches || matches.length === 0) {
+      matchesList.innerHTML = '<p class="text-muted">No matches added yet.</p>';
+      return;
+    }
+    
+    let html = '<div class="table-container"><table><thead><tr><th>Team 1</th><th>Team 2</th><th>Date</th><th>Venue</th><th>Result</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+    
+    matches.forEach((match, index) => {
+      html += `
+        <tr>
+          <td>${match.team1 || '-'}</td>
+          <td>${match.team2 || '-'}</td>
+          <td>${match.date || '-'}</td>
+          <td>${match.venue || '-'}</td>
+          <td>${match.result || '-'}</td>
+          <td><span class="badge ${match.status === 'completed' ? 'badge-success' : 'badge-warning'}">${match.status || 'upcoming'}</span></td>
+          <td>
+            <button class="btn btn-sm btn-outline" onclick="editMatch('${match.id}')">Edit</button>
+            <button class="btn btn-sm btn-outline" onclick="deleteMatch('${match.id}')" style="color: var(--error);">Delete</button>
+          </td>
+        </tr>
+      `;
+    });
+    
+    html += '</tbody></table></div>';
+    matchesList.innerHTML = html;
+    
+  } catch (error) {
+    console.error('Error loading matches:', error);
+    matchesList.innerHTML = '<p class="text-muted">Error loading matches.</p>';
+  }
+}
+
+/**
+ * Load teams
+ */
+async function loadTeams() {
+  if (!teamsList) return;
+  
+  try {
+    const teams = await getSeasonTeams(currentSeasonId);
+    
+    if (!teams || teams.length === 0) {
+      teamsList.innerHTML = '<p class="text-muted">No teams added yet.</p>';
+      return;
+    }
+    
+    let html = '<div class="table-container"><table><thead><tr><th>Team Name</th><th>Captain</th><th>Players</th><th>Actions</th></tr></thead><tbody>';
+    
+    teams.forEach(team => {
+      html += `
+        <tr>
+          <td><strong>${team.name || '-'}</strong></td>
+          <td>${team.captain || '-'}</td>
+          <td>${team.players?.length || 0}</td>
+          <td>
+            <button class="btn btn-sm btn-outline" onclick="editTeam('${team.id}')">Edit</button>
+            <button class="btn btn-sm btn-outline" onclick="deleteTeam('${team.id}')" style="color: var(--error);">Delete</button>
+          </td>
+        </tr>
+      `;
+    });
+    
+    html += '</tbody></table></div>';
+    teamsList.innerHTML = html;
+    
+  } catch (error) {
+    console.error('Error loading teams:', error);
+    teamsList.innerHTML = '<p class="text-muted">Error loading teams.</p>';
+  }
+}
+
+/**
+ * Load points table
+ */
+async function loadPointsTable() {
+  if (!pointsTableEditor) return;
+  
+  try {
+    const points = await getPointsTable(currentSeasonId);
+    
+    if (!points || points.length === 0) {
+      pointsTableEditor.innerHTML = '<p class="text-muted">No points data added yet.</p>';
+      return;
+    }
+    
+    let html = '<div class="table-container"><table><thead><tr><th>Team</th><th>P</th><th>W</th><th>L</th><th>T</th><th>N/R</th><th>Points</th><th>NRR</th><th>Actions</th></tr></thead><tbody>';
+    
+    points.forEach(team => {
+      html += `
+        <tr>
+          <td><strong>${team.teamName || '-'}</strong></td>
+          <td><input type="number" value="${team.played || 0}" style="width: 50px; padding: 4px;"></td>
+          <td><input type="number" value="${team.wins || 0}" style="width: 50px; padding: 4px;"></td>
+          <td><input type="number" value="${team.losses || 0}" style="width: 50px; padding: 4px;"></td>
+          <td><input type="number" value="${team.ties || 0}" style="width: 50px; padding: 4px;"></td>
+          <td><input type="number" value="${team.nr || 0}" style="width: 50px; padding: 4px;"></td>
+          <td><input type="number" value="${team.points || 0}" style="width: 60px; padding: 4px;"></td>
+          <td><input type="text" value="${team.netRunRate || 0}" style="width: 70px; padding: 4px;"></td>
+          <td>
+            <button class="btn btn-sm btn-primary" onclick="savePoints('${team.teamName}')">Save</button>
+          </td>
+        </tr>
+      `;
+    });
+    
+    html += '</tbody></table></div>';
+    pointsTableEditor.innerHTML = html;
+    
+  } catch (error) {
+    console.error('Error loading points:', error);
+    pointsTableEditor.innerHTML = '<p class="text-muted">Error loading points table.</p>';
+  }
+}
+
+/**
+ * Load stats
+ */
+async function loadStats() {
+  if (!statsEditor) return;
+  
+  try {
+    const stats = await getSeasonStats(currentSeasonId);
+    
+    if (!stats || (!stats.batting?.length && !stats.bowling?.length)) {
+      statsEditor.innerHTML = '<p class="text-muted">No statistics added yet. Use the forms above to add player stats.</p>';
+      return;
+    }
+    
+    let html = '';
+    
+    // Batting Stats Table
+    if (stats.batting?.length > 0) {
+      html += '<h3 class="mb-md">🏏 Batting Statistics</h3>';
+      html += '<div class="table-container mb-lg"><table><thead><tr><th>Player</th><th>Team</th><th>M</th><th>Inns</th><th>Runs</th><th>Balls</th><th>SR</th><th>50s</th><th>100s</th></tr></thead><tbody>';
+      
+      stats.batting.forEach(player => {
+        const strikeRate = player.balls > 0 ? ((player.runs / player.balls) * 100).toFixed(2) : '0.00';
+        html += `
+          <tr>
+            <td><strong>${player.name || '-'}</strong></td>
+            <td>${player.team || '-'}</td>
+            <td>${player.matches || 0}</td>
+            <td>${player.innings || 0}</td>
+            <td>${player.runs || 0}</td>
+            <td>${player.balls || 0}</td>
+            <td>${strikeRate}</td>
+            <td>${player.fifties || 0}</td>
+            <td>${player.hundreds || 0}</td>
+          </tr>
+        `;
+      });
+      
+      html += '</tbody></table></div>';
+    }
+    
+    // Bowling Stats Table
+    if (stats.bowling?.length > 0) {
+      html += '<h3 class="mb-md">🎳 Bowling Statistics</h3>';
+      html += '<div class="table-container"><table><thead><tr><th>Player</th><th>Team</th><th>M</th><th>Overs</th><th>Wickets</th><th>Runs</th><th>Econ</th><th>5WI</th></tr></thead><tbody>';
+      
+      stats.bowling.forEach(player => {
+        html += `
+          <tr>
+            <td><strong>${player.name || '-'}</strong></td>
+            <td>${player.team || '-'}</td>
+            <td>${player.matches || 0}</td>
+            <td>${player.overs || '-'}</td>
+            <td>${player.wickets || 0}</td>
+            <td>${player.runs || 0}</td>
+            <td>${player.economy || '-'}</td>
+            <td>${player.fiveWicketHauls || 0}</td>
+          </tr>
+        `;
+      });
+      
+      html += '</tbody></table></div>';
+    }
+    
+    statsEditor.innerHTML = html;
+    
+  } catch (error) {
+    console.error('Error loading stats:', error);
+    statsEditor.innerHTML = '<p class="text-muted">Error loading statistics.</p>';
+  }
+}
+
+/**
+ * Load media
+ */
+async function loadMedia() {
+  // Media is loaded via form inputs
+}
+
+/**
+ * Load tournament settings
+ */
+async function loadTournamentSettings() {
+  try {
+    const meta = await getTournamentMeta();
+    
+    if (meta) {
+      document.getElementById('tournamentTagline').value = meta.tagline || '';
+      document.getElementById('tournamentWhy').value = meta.why || '';
+      document.getElementById('tournamentVision').value = meta.vision || '';
+      document.getElementById('tournamentOrganizer').value = meta.organizer || '';
+      document.getElementById('tournamentOrganizerTitle').value = meta.organizerTitle || '';
+      document.getElementById('tournamentOrganizerProfile').value = meta.organizerProfile || '';
+      
+      // Handle organizer photo with default
+      const organizerPhotoInput = document.getElementById('tournamentOrganizerPhoto');
+      const organizerPhotoUrl = meta.organizerPhoto || '';
+      if (organizerPhotoInput) {
+        organizerPhotoInput.value = organizerPhotoUrl;
+        // Trigger preview
+        const preview = document.getElementById('organizerPhotoPreview');
+        const previewImg = document.getElementById('organizerPreviewImg');
+        if (organizerPhotoUrl && preview && previewImg) {
+          previewImg.src = organizerPhotoUrl;
+          preview.style.display = 'block';
+        } else if (preview) {
+          preview.style.display = 'none';
+        }
+      }
+      
+      document.getElementById('tournamentHeroImage').value = meta.heroImage || '';
+      document.getElementById('tournamentInstagramUrl').value = meta.instagramUrl || '';
+    }
+  } catch (error) {
+    console.error('Error loading tournament settings:', error);
+  }
+}
+
+// Form submission handlers
 async function handleOverviewSubmit(e) {
   e.preventDefault();
   if (!currentSeasonId) {
-    alert('Please select a season first');
+    showNotification('Please select a season first', 'error');
     return;
   }
   
   const description = document.getElementById('overviewDescription').value;
   
   try {
-    await updateSeasonData(currentSeasonId, {
-      overview: {
-        description: description
-      }
-    });
-    alert('Overview saved successfully!');
+    await updateSeasonData(currentSeasonId, { overview: { description } });
     await loadSeasonData(currentSeasonId);
+    showNotification('Overview saved successfully!', 'success');
   } catch (error) {
     console.error('Error saving overview:', error);
-    alert('Error saving overview');
+    showNotification('Error saving overview', 'error');
   }
 }
 
 async function handleFormatSubmit(e) {
   e.preventDefault();
   if (!currentSeasonId) {
-    alert('Please select a season first');
+    showNotification('Please select a season first', 'error');
     return;
   }
   
@@ -368,57 +982,40 @@ async function handleFormatSubmit(e) {
   const qualificationRules = document.getElementById('qualificationRules').value;
   
   try {
-    await updateSeasonData(currentSeasonId, {
-      format: {
-        leagueMatches: leagueMatches,
-        qualificationRules: qualificationRules
-      }
-    });
-    alert('Format saved successfully!');
+    await updateSeasonData(currentSeasonId, { format: { leagueMatches, qualificationRules } });
     await loadSeasonData(currentSeasonId);
+    showNotification('Format saved successfully!', 'success');
   } catch (error) {
     console.error('Error saving format:', error);
-    alert('Error saving format');
+    showNotification('Error saving format', 'error');
   }
 }
 
 async function handleAwardsSubmit(e) {
   e.preventDefault();
   if (!currentSeasonId) {
-    alert('Please select a season first');
+    showNotification('Please select a season first', 'error');
     return;
   }
   
-  const matchAwards = document.getElementById('matchAwards').value
-    .split('\n')
-    .filter(line => line.trim() !== '');
-  const tournamentAwards = document.getElementById('tournamentAwards').value
-    .split('\n')
-    .filter(line => line.trim() !== '');
-  const teamAwards = document.getElementById('teamAwards').value
-    .split('\n')
-    .filter(line => line.trim() !== '');
+  const matchAwards = document.getElementById('matchAwards').value.split('\n').filter(line => line.trim() !== '');
+  const tournamentAwards = document.getElementById('tournamentAwards').value.split('\n').filter(line => line.trim() !== '');
+  const teamAwards = document.getElementById('teamAwards').value.split('\n').filter(line => line.trim() !== '');
   
   try {
-    await updateSeasonData(currentSeasonId, {
-      awards: {
-        matchAwards: matchAwards,
-        tournamentAwards: tournamentAwards,
-        teamAwards: teamAwards
-      }
-    });
-    alert('Awards saved successfully!');
+    await updateSeasonData(currentSeasonId, { awards: { matchAwards, tournamentAwards, teamAwards } });
     await loadSeasonData(currentSeasonId);
+    showNotification('Awards saved successfully!', 'success');
   } catch (error) {
     console.error('Error saving awards:', error);
-    alert('Error saving awards');
+    showNotification('Error saving awards', 'error');
   }
 }
 
 async function handleFacilitiesSubmit(e) {
   e.preventDefault();
   if (!currentSeasonId) {
-    alert('Please select a season first');
+    showNotification('Please select a season first', 'error');
     return;
   }
   
@@ -427,25 +1024,19 @@ async function handleFacilitiesSubmit(e) {
   const streamingCost = document.getElementById('streamingCost').value;
   
   try {
-    await updateSeasonData(currentSeasonId, {
-      facilities: {
-        refreshments: refreshments,
-        liveStreaming: liveStreaming,
-        streamingCost: streamingCost
-      }
-    });
-    alert('Facilities saved successfully!');
+    await updateSeasonData(currentSeasonId, { facilities: { refreshments, liveStreaming, streamingCost } });
     await loadSeasonData(currentSeasonId);
+    showNotification('Facilities saved successfully!', 'success');
   } catch (error) {
     console.error('Error saving facilities:', error);
-    alert('Error saving facilities');
+    showNotification('Error saving facilities', 'error');
   }
 }
 
 async function handleCostSubmit(e) {
   e.preventDefault();
   if (!currentSeasonId) {
-    alert('Please select a season first');
+    showNotification('Please select a season first', 'error');
     return;
   }
   
@@ -455,26 +1046,19 @@ async function handleCostSubmit(e) {
   const totalPerMatch = document.getElementById('totalPerMatch').value;
   
   try {
-    await updateSeasonData(currentSeasonId, {
-      costStructure: {
-        groundFee: groundFee,
-        umpireFee: umpireFee,
-        refreshmentCost: refreshmentCost,
-        totalPerMatch: totalPerMatch
-      }
-    });
-    alert('Cost structure saved successfully!');
+    await updateSeasonData(currentSeasonId, { costStructure: { groundFee, umpireFee, refreshmentCost, totalPerMatch } });
     await loadSeasonData(currentSeasonId);
+    showNotification('Cost structure saved successfully!', 'success');
   } catch (error) {
     console.error('Error saving cost structure:', error);
-    alert('Error saving cost structure');
+    showNotification('Error saving cost structure', 'error');
   }
 }
 
 async function handlePaymentSubmit(e) {
   e.preventDefault();
   if (!currentSeasonId) {
-    alert('Please select a season first');
+    showNotification('Please select a season first', 'error');
     return;
   }
   
@@ -483,1006 +1067,300 @@ async function handlePaymentSubmit(e) {
   const totalAdvance = document.getElementById('totalAdvance').value;
   
   try {
-    await updateSeasonData(currentSeasonId, {
-      paymentPolicy: {
-        advanceMatchFee: advanceMatchFee,
-        awardsContribution: awardsContribution,
-        totalAdvance: totalAdvance
-      }
-    });
-    alert('Payment policy saved successfully!');
+    await updateSeasonData(currentSeasonId, { paymentPolicy: { advanceMatchFee, awardsContribution, totalAdvance } });
     await loadSeasonData(currentSeasonId);
+    showNotification('Payment policy saved successfully!', 'success');
   } catch (error) {
     console.error('Error saving payment policy:', error);
-    alert('Error saving payment policy');
+    showNotification('Error saving payment policy', 'error');
   }
 }
 
-/**
- * Load and render matches
- */
-async function loadMatches() {
-  if (!currentSeasonId) return;
-  
-  try {
-    const matches = await getSeasonMatches(currentSeasonId);
-    
-    if (matches.length === 0) {
-      matchesList.innerHTML = '<p class="empty-state">No matches added yet. Click "Add Match" to get started.</p>';
-      return;
-    }
-    
-    let html = '<div class="table-container"><table><thead><tr>';
-    html += '<th>Date</th><th>Team 1</th><th>vs</th><th>Team 2</th><th>Venue</th><th>Status</th><th>Actions</th>';
-    html += '</tr></thead><tbody>';
-    
-    matches.forEach(match => {
-      html += '<tr>';
-      html += `<td>${match.date || 'TBD'}</td>`;
-      html += `<td>${match.team1 || 'TBD'}</td>`;
-      html += '<td>vs</td>';
-      html += `<td>${match.team2 || 'TBD'}</td>`;
-      html += `<td>${match.venue || 'TBD'}</td>`;
-      html += `<td>${match.status || 'Scheduled'}</td>`;
-      html += `<td>
-        <button class="btn btn-sm btn-outline" data-match-id="${match.id}">Edit</button>
-        <button class="btn btn-sm btn-danger" data-match-id="${match.id}">Delete</button>
-      </td>`;
-      html += '</tr>';
-    });
-    
-    html += '</tbody></table></div>';
-    matchesList.innerHTML = html;
-    
-    // Attach event listeners using event delegation
-    matchesList.addEventListener('click', (e) => {
-      if (e.target.classList.contains('btn')) {
-        const matchId = e.target.dataset.matchId;
-        if (e.target.textContent === 'Edit') {
-          editMatch(matchId);
-        } else if (e.target.textContent === 'Delete') {
-          deleteMatchHandler(matchId);
-        }
-      }
-    });
-    
-  } catch (error) {
-    console.error('Error loading matches:', error);
-    matchesList.innerHTML = '<p class="alert alert-error">Error loading matches</p>';
-  }
-}
-
-/**
- * Show match modal (add/edit)
- */
-function showMatchModal(matchId = null) {
-  if (!currentSeasonId) {
-    alert('Please select a season first');
-    return;
-  }
-  
-  const match = matchId ? 
-    matchesList.querySelector(`[data-match-id="${matchId}"]`)?.dataset : null;
-  
-  const modal = document.createElement('div');
-  modal.style.cssText = `
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.7); display: flex; align-items: center;
-    justify-content: center; z-index: 1000;
-  `;
-  
-  modal.innerHTML = `
-    <div class="card" style="max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;">
-      <h2>${matchId ? 'Edit Match' : 'Add Match'}</h2>
-      <form id="matchForm">
-        <div class="form-group">
-          <label class="form-label">Date</label>
-          <input type="date" id="matchDate" class="form-input" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Team 1</label>
-          <input type="text" id="matchTeam1" class="form-input" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Team 2</label>
-          <input type="text" id="matchTeam2" class="form-input" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Venue</label>
-          <input type="text" id="matchVenue" class="form-input">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Status</label>
-          <select id="matchStatus" class="form-select">
-            <option value="Scheduled">Scheduled</option>
-            <option value="Live">Live</option>
-            <option value="Completed">Completed</option>
-            <option value="Cancelled">Cancelled</option>
-          </select>
-        </div>
-        <div style="display: flex; gap: var(--spacing-sm);">
-          <button type="submit" class="btn btn-primary">Save</button>
-          <button type="button" class="btn btn-outline" data-action="close-modal">Cancel</button>
-        </div>
-      </form>
-    </div>
-  `;
-  
-  document.getElementById('modalContainer').appendChild(modal);
-  
-  // Close modal
-  modal.querySelector('[data-action="close-modal"]').addEventListener('click', () => {
-    modal.remove();
-  });
-
-  // Populate if editing
-  if (matchId) {
-    // Load match data
-    getSeasonMatches(currentSeasonId).then(matches => {
-      const matchData = matches.find(m => m.id === matchId);
-      if (matchData) {
-        document.getElementById('matchDate').value = matchData.date || '';
-        document.getElementById('matchTeam1').value = matchData.team1 || '';
-        document.getElementById('matchTeam2').value = matchData.team2 || '';
-        document.getElementById('matchVenue').value = matchData.venue || '';
-        document.getElementById('matchStatus').value = matchData.status || 'Scheduled';
-      }
-    });
-  }
-  
-  // Handle form submission
-  modal.querySelector('#matchForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const matchData = {
-      date: document.getElementById('matchDate').value,
-      team1: document.getElementById('matchTeam1').value,
-      team2: document.getElementById('matchTeam2').value,
-      venue: document.getElementById('matchVenue').value,
-      status: document.getElementById('matchStatus').value
-    };
-    
-    try {
-      if (matchId) {
-        await updateMatch(currentSeasonId, matchId, matchData);
-      } else {
-        await addMatch(currentSeasonId, matchData);
-      }
-      modal.remove();
-      await loadMatches();
-      alert('Match saved successfully!');
-    } catch (error) {
-      console.error('Error saving match:', error);
-      alert('Error saving match');
-    }
-  });
-}
-
-/**
- * Edit match
- */
-function editMatch(matchId) {
-  showMatchModal(matchId);
-}
-
-/**
- * Delete match
- */
-async function deleteMatchHandler(matchId) {
-  if (!confirm('Are you sure you want to delete this match?')) return;
-  
-  try {
-    await deleteMatch(currentSeasonId, matchId);
-    await loadMatches();
-    alert('Match deleted successfully!');
-  } catch (error) {
-    console.error('Error deleting match:', error);
-    alert('Error deleting match');
-  }
-}
-
-/**
- * Load and render teams
- */
-async function loadTeams() {
-  if (!currentSeasonId) return;
-  
-  try {
-    const teams = await getSeasonTeams(currentSeasonId);
-    
-    if (teams.length === 0) {
-      teamsList.innerHTML = '<p class="empty-state">No teams added yet. Click "Add Team" to get started.</p>';
-      return;
-    }
-    
-    let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--spacing-md);">';
-    
-    teams.forEach(team => {
-      html += `<div class="card">
-        <h3>${team.name || 'Unknown Team'}</h3>
-        ${team.captain ? `<p><strong>Captain:</strong> ${team.captain}</p>` : ''}
-        ${team.description ? `<p class="text-muted">${team.description}</p>` : ''}
-        <div style="margin-top: var(--spacing-sm); display: flex; gap: var(--spacing-xs);">
-          <button class="btn btn-sm btn-outline" data-team-id="${team.id}">Edit</button>
-          <button class="btn btn-sm btn-danger" data-team-id="${team.id}">Delete</button>
-        </div>
-      </div>`;
-    });
-    
-    html += '</div>';
-    teamsList.innerHTML = html;
-    
-    // Attach event listeners using event delegation
-    teamsList.addEventListener('click', (e) => {
-      if (e.target.classList.contains('btn')) {
-        const teamId = e.target.dataset.teamId;
-        if (e.target.textContent === 'Edit') {
-          editTeam(teamId);
-        } else if (e.target.textContent === 'Delete') {
-          deleteTeamHandler(teamId);
-        }
-      }
-    });
-    
-  } catch (error) {
-    console.error('Error loading teams:', error);
-    teamsList.innerHTML = '<p class="alert alert-error">Error loading teams</p>';
-  }
-}
-
-/**
- * Show team modal (add/edit)
- */
-function showTeamModal(teamId = null) {
-  if (!currentSeasonId) {
-    alert('Please select a season first');
-    return;
-  }
-  
-  const modal = document.createElement('div');
-  modal.style.cssText = `
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.7); display: flex; align-items: center;
-    justify-content: center; z-index: 1000;
-  `;
-  
-  modal.innerHTML = `
-    <div class="card" style="max-width: 500px; width: 90%;">
-      <h2>${teamId ? 'Edit Team' : 'Add Team'}</h2>
-      <form id="teamForm">
-        <div class="form-group">
-          <label class="form-label">Team Name</label>
-          <input type="text" id="teamName" class="form-input" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Captain</label>
-          <input type="text" id="teamCaptain" class="form-input">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Description</label>
-          <textarea id="teamDescription" class="form-textarea" rows="3"></textarea>
-        </div>
-        <div style="display: flex; gap: var(--spacing-sm);">
-          <button type="submit" class="btn btn-primary">Save</button>
-          <button type="button" class="btn btn-outline" data-action="close-modal">Cancel</button>
-        </div>
-      </form>
-    </div>
-  `;
-  
-  document.getElementById('modalContainer').appendChild(modal);
-  
-  // Close modal
-  modal.querySelector('[data-action="close-modal"]').addEventListener('click', () => {
-    modal.remove();
-  });
-
-  // Populate if editing
-  if (teamId) {
-    getSeasonTeams(currentSeasonId).then(teams => {
-      const teamData = teams.find(t => t.id === teamId);
-      if (teamData) {
-        document.getElementById('teamName').value = teamData.name || '';
-        document.getElementById('teamCaptain').value = teamData.captain || '';
-        document.getElementById('teamDescription').value = teamData.description || '';
-      }
-    });
-  }
-  
-  // Handle form submission
-  modal.querySelector('#teamForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const teamData = {
-      name: document.getElementById('teamName').value,
-      captain: document.getElementById('teamCaptain').value,
-      description: document.getElementById('teamDescription').value
-    };
-    
-    try {
-      if (teamId) {
-        await updateTeam(currentSeasonId, teamId, teamData);
-      } else {
-        await addTeam(currentSeasonId, teamData);
-      }
-      modal.remove();
-      await loadTeams();
-      alert('Team saved successfully!');
-    } catch (error) {
-      console.error('Error saving team:', error);
-      alert('Error saving team');
-    }
-  });
-}
-
-/**
- * Edit team
- */
-function editTeam(teamId) {
-  showTeamModal(teamId);
-}
-
-/**
- * Delete team
- */
-async function deleteTeamHandler(teamId) {
-  if (!confirm('Are you sure you want to delete this team?')) return;
-  
-  try {
-    await deleteTeam(currentSeasonId, teamId);
-    await loadTeams();
-    alert('Team deleted successfully!');
-  } catch (error) {
-    console.error('Error deleting team:', error);
-    alert('Error deleting team');
-  }
-}
-
-/**
- * Load and render points table editor
- */
-async function loadPointsTable() {
-  if (!currentSeasonId) return;
-  
-  try {
-    const pointsData = await getPointsTable(currentSeasonId);
-    
-    let html = '<p class="text-muted mb-md">Edit points table. Add or update team standings.</p>';
-    html += '<button id="addPointsRowBtn" class="btn btn-primary btn-sm mb-md">Add Team</button>';
-    html += `
-      <div class="form-grid-header">
-        <span>Team</span>
-        <span>Played</span>
-        <span>Won</span>
-        <span>Lost</span>
-        <span>Tied</span>
-        <span>Points</span>
-        <span>NRR</span>
-        <span>Actions</span>
-      </div>
-    `;
-    html += '<div id="pointsTableRows"></div>';
-    html += '<button id="savePointsBtn" class="btn btn-primary mt-md">Save Points Table</button>';
-    
-    pointsTableEditor.innerHTML = html;
-    
-    // Render existing rows
-    const rowsContainer = document.getElementById('pointsTableRows');
-    if (pointsData && pointsData.length > 0) {
-      pointsData.forEach((team, index) => {
-        rowsContainer.appendChild(createPointsRow(team, index));
-      });
-    }
-    
-    // Event listeners
-    document.getElementById('addPointsRowBtn').addEventListener('click', () => {
-      rowsContainer.appendChild(createPointsRow({}, rowsContainer.children.length));
-    });
-    
-    document.getElementById('savePointsBtn').addEventListener('click', async () => {
-      const rows = Array.from(rowsContainer.children);
-      const pointsData = rows.map(row => ({
-        team: row.querySelector('[name="team"]').value,
-        played: parseInt(row.querySelector('[name="played"]').value) || 0,
-        won: parseInt(row.querySelector('[name="won"]').value) || 0,
-        lost: parseInt(row.querySelector('[name="lost"]').value) || 0,
-        tied: parseInt(row.querySelector('[name="tied"]').value) || 0,
-        points: parseInt(row.querySelector('[name="points"]').value) || 0,
-        nrr: parseFloat(row.querySelector('[name="nrr"]').value) || 0
-      })).filter(t => t.team);
-      
-      try {
-        await updatePointsTable(currentSeasonId, pointsData);
-        alert('Points table saved successfully!');
-        await loadPointsTable();
-      } catch (error) {
-        console.error('Error saving points table:', error);
-        alert('Error saving points table');
-      }
-    });
-    
-  } catch (error) {
-    console.error('Error loading points table:', error);
-    pointsTableEditor.innerHTML = '<p class="alert alert-error">Error loading points table</p>';
-  }
-}
-
-/**
- * Create points table row
- */
-function createPointsRow(team, index) {
-  const row = document.createElement('div');
-  row.className = 'card';
-  row.style.marginBottom = 'var(--spacing-sm)';
-  row.innerHTML = `
-    <div class="form-grid">
-      <div class="form-field">
-        <span class="form-field-label">Team</span>
-        <input type="text" name="team" class="form-input" placeholder="Team Name" value="${team.team || ''}" required>
-      </div>
-      <div class="form-field">
-        <span class="form-field-label">Played</span>
-        <input type="number" name="played" class="form-input" placeholder="Played" value="${team.played || 0}" min="0">
-      </div>
-      <div class="form-field">
-        <span class="form-field-label">Won</span>
-        <input type="number" name="won" class="form-input" placeholder="Won" value="${team.won || 0}" min="0">
-      </div>
-      <div class="form-field">
-        <span class="form-field-label">Lost</span>
-        <input type="number" name="lost" class="form-input" placeholder="Lost" value="${team.lost || 0}" min="0">
-      </div>
-      <div class="form-field">
-        <span class="form-field-label">Tied</span>
-        <input type="number" name="tied" class="form-input" placeholder="Tied" value="${team.tied || 0}" min="0">
-      </div>
-      <div class="form-field">
-        <span class="form-field-label">Points</span>
-        <input type="number" name="points" class="form-input" placeholder="Points" value="${team.points || 0}" min="0">
-      </div>
-      <div class="form-field">
-        <span class="form-field-label">NRR</span>
-        <input type="number" name="nrr" class="form-input" placeholder="NRR" step="0.001" value="${team.nrr || 0}">
-      </div>
-      <div class="form-field form-field-action">
-        <span class="form-field-label">Actions</span>
-        <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.card').remove()">Remove</button>
-      </div>
-    </div>
-  `;
-  return row;
-}
-
-/**
- * Load and render stats editor
- */
-async function loadStats() {
-  if (!currentSeasonId) return;
-  
-  try {
-    const stats = await getSeasonStats(currentSeasonId);
-    
-    let html = `
-      <div class="tabs" style="margin-bottom: var(--spacing-md);">
-        <button class="tab active" data-stat-tab="batting">Batting Stats</button>
-        <button class="tab" data-stat-tab="bowling">Bowling Stats</button>
-      </div>
-      <div id="battingStatsEditor" class="tab-content active">
-        <button id="addBattingRowBtn" class="btn btn-primary btn-sm mb-md">Add Player</button>
-        <div class="form-grid-header">
-          <span>Player</span>
-          <span>Team</span>
-          <span>Matches</span>
-          <span>Innings</span>
-          <span>Runs</span>
-          <span>Balls</span>
-          <span>50s</span>
-          <span>100s</span>
-          <span>Actions</span>
-        </div>
-        <div id="battingRows"></div>
-        <button id="saveBattingBtn" class="btn btn-primary mt-md">Save Batting Stats</button>
-      </div>
-      <div id="bowlingStatsEditor" class="tab-content">
-        <button id="addBowlingRowBtn" class="btn btn-primary btn-sm mb-md">Add Player</button>
-        <div class="form-grid-header">
-          <span>Player</span>
-          <span>Team</span>
-          <span>Matches</span>
-          <span>Wickets</span>
-          <span>Runs</span>
-          <span>Overs</span>
-          <span>Actions</span>
-        </div>
-        <div id="bowlingRows"></div>
-        <button id="saveBowlingBtn" class="btn btn-primary mt-md">Save Bowling Stats</button>
-      </div>
-    `;
-    
-    statsEditor.innerHTML = html;
-    
-    // Render existing batting stats
-    const battingRows = document.getElementById('battingRows');
-    if (stats.batting && stats.batting.length > 0) {
-      stats.batting.forEach((player, index) => {
-        battingRows.appendChild(createBattingRow(player, index));
-      });
-    }
-    
-    // Render existing bowling stats
-    const bowlingRows = document.getElementById('bowlingRows');
-    if (stats.bowling && stats.bowling.length > 0) {
-      stats.bowling.forEach((player, index) => {
-        bowlingRows.appendChild(createBowlingRow(player, index));
-      });
-    }
-    
-    // Tab switching
-    document.querySelectorAll('[data-stat-tab]').forEach(tab => {
-      tab.addEventListener('click', () => {
-        const tabId = tab.dataset.statTab;
-        document.querySelectorAll('[data-stat-tab]').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('#battingStatsEditor, #bowlingStatsEditor').forEach(c => c.classList.remove('active'));
-        tab.classList.add('active');
-        document.getElementById(`${tabId}StatsEditor`).classList.add('active');
-      });
-    });
-    
-    // Event listeners
-    document.getElementById('addBattingRowBtn').addEventListener('click', () => {
-      battingRows.appendChild(createBattingRow({}, battingRows.children.length));
-    });
-    
-    document.getElementById('addBowlingRowBtn').addEventListener('click', () => {
-      bowlingRows.appendChild(createBowlingRow({}, bowlingRows.children.length));
-    });
-    
-    document.getElementById('saveBattingBtn').addEventListener('click', async () => {
-      const rows = Array.from(battingRows.children);
-      const battingData = rows.map(row => ({
-        name: row.querySelector('[name="name"]').value,
-        team: row.querySelector('[name="team"]').value,
-        matches: parseInt(row.querySelector('[name="matches"]').value) || 0,
-        innings: parseInt(row.querySelector('[name="innings"]').value) || 0,
-        runs: parseInt(row.querySelector('[name="runs"]').value) || 0,
-        balls: parseInt(row.querySelector('[name="balls"]').value) || 0,
-        fifties: parseInt(row.querySelector('[name="fifties"]').value) || 0,
-        hundreds: parseInt(row.querySelector('[name="hundreds"]').value) || 0
-      })).filter(p => p.name);
-      
-      try {
-        const currentStats = await getSeasonStats(currentSeasonId);
-        await updateStats(currentSeasonId, {
-          batting: battingData,
-          bowling: currentStats.bowling || []
-        });
-        alert('Batting stats saved successfully!');
-        await loadStats();
-      } catch (error) {
-        console.error('Error saving batting stats:', error);
-        alert('Error saving batting stats');
-      }
-    });
-    
-    document.getElementById('saveBowlingBtn').addEventListener('click', async () => {
-      const rows = Array.from(bowlingRows.children);
-      const bowlingData = rows.map(row => ({
-        name: row.querySelector('[name="name"]').value,
-        team: row.querySelector('[name="team"]').value,
-        matches: parseInt(row.querySelector('[name="matches"]').value) || 0,
-        wickets: parseInt(row.querySelector('[name="wickets"]').value) || 0,
-        runs: parseInt(row.querySelector('[name="runs"]').value) || 0,
-        overs: parseFloat(row.querySelector('[name="overs"]').value) || 0
-      })).filter(p => p.name);
-      
-      try {
-        const currentStats = await getSeasonStats(currentSeasonId);
-        await updateStats(currentSeasonId, {
-          batting: currentStats.batting || [],
-          bowling: bowlingData
-        });
-        alert('Bowling stats saved successfully!');
-        await loadStats();
-      } catch (error) {
-        console.error('Error saving bowling stats:', error);
-        alert('Error saving bowling stats');
-      }
-    });
-    
-  } catch (error) {
-    console.error('Error loading stats:', error);
-    statsEditor.innerHTML = '<p class="alert alert-error">Error loading statistics</p>';
-  }
-}
-
-/**
- * Create batting stats row
- */
-function createBattingRow(player, index) {
-  const row = document.createElement('div');
-  row.className = 'card';
-  row.style.marginBottom = 'var(--spacing-sm)';
-  row.innerHTML = `
-    <div class="form-grid">
-      <div class="form-field">
-        <span class="form-field-label">Player</span>
-        <input type="text" name="name" class="form-input" placeholder="Player Name" value="${player.name || ''}" required>
-      </div>
-      <div class="form-field">
-        <span class="form-field-label">Team</span>
-        <input type="text" name="team" class="form-input" placeholder="Team" value="${player.team || ''}">
-      </div>
-      <div class="form-field">
-        <span class="form-field-label">Matches</span>
-        <input type="number" name="matches" class="form-input" placeholder="Matches" value="${player.matches || 0}" min="0">
-      </div>
-      <div class="form-field">
-        <span class="form-field-label">Innings</span>
-        <input type="number" name="innings" class="form-input" placeholder="Innings" value="${player.innings || 0}" min="0">
-      </div>
-      <div class="form-field">
-        <span class="form-field-label">Runs</span>
-        <input type="number" name="runs" class="form-input" placeholder="Runs" value="${player.runs || 0}" min="0">
-      </div>
-      <div class="form-field">
-        <span class="form-field-label">Balls</span>
-        <input type="number" name="balls" class="form-input" placeholder="Balls" value="${player.balls || 0}" min="0">
-      </div>
-      <div class="form-field">
-        <span class="form-field-label">50s</span>
-        <input type="number" name="fifties" class="form-input" placeholder="50s" value="${player.fifties || 0}" min="0">
-      </div>
-      <div class="form-field">
-        <span class="form-field-label">100s</span>
-        <input type="number" name="hundreds" class="form-input" placeholder="100s" value="${player.hundreds || 0}" min="0">
-      </div>
-      <div class="form-field form-field-action">
-        <span class="form-field-label">Actions</span>
-        <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.card').remove()">Remove</button>
-      </div>
-    </div>
-  `;
-  return row;
-}
-
-/**
- * Create bowling stats row
- */
-function createBowlingRow(player, index) {
-  const row = document.createElement('div');
-  row.className = 'card';
-  row.style.marginBottom = 'var(--spacing-sm)';
-  row.innerHTML = `
-    <div class="form-grid">
-      <div class="form-field">
-        <span class="form-field-label">Player</span>
-        <input type="text" name="name" class="form-input" placeholder="Player Name" value="${player.name || ''}" required>
-      </div>
-      <div class="form-field">
-        <span class="form-field-label">Team</span>
-        <input type="text" name="team" class="form-input" placeholder="Team" value="${player.team || ''}">
-      </div>
-      <div class="form-field">
-        <span class="form-field-label">Matches</span>
-        <input type="number" name="matches" class="form-input" placeholder="Matches" value="${player.matches || 0}" min="0">
-      </div>
-      <div class="form-field">
-        <span class="form-field-label">Wickets</span>
-        <input type="number" name="wickets" class="form-input" placeholder="Wickets" value="${player.wickets || 0}" min="0">
-      </div>
-      <div class="form-field">
-        <span class="form-field-label">Runs</span>
-        <input type="number" name="runs" class="form-input" placeholder="Runs" value="${player.runs || 0}" min="0">
-      </div>
-      <div class="form-field">
-        <span class="form-field-label">Overs</span>
-        <input type="number" name="overs" class="form-input" placeholder="Overs" step="0.1" value="${player.overs || 0}" min="0">
-      </div>
-      <div class="form-field form-field-action">
-        <span class="form-field-label">Actions</span>
-        <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.card').remove()">Remove</button>
-      </div>
-    </div>
-  `;
-  return row;
-}
-
-/**
- * Load media for current season
- */
-async function loadMedia() {
-  if (!currentSeasonId) return;
-  
-  try {
-    const media = await getSeasonMedia(currentSeasonId);
-    
-    // Populate media fields
-    document.getElementById('mediaImages').value = (media.images || []).join('\n');
-    document.getElementById('mediaVideos').value = (media.videos || []).join('\n');
-    document.getElementById('mediaInstagram').value = (media.instagram || []).join('\n');
-    
-    // Show preview
-    updateMediaPreview(media);
-  } catch (error) {
-    console.error('Error loading media:', error);
-  }
-}
-
-/**
- * Handle media save
- */
 async function handleMediaSave(e) {
   e.preventDefault();
-  
   if (!currentSeasonId) {
-    alert('Please select a season first');
+    showNotification('Please select a season first', 'error');
     return;
   }
   
+  const images = document.getElementById('mediaImages').value.split('\n').filter(line => line.trim() !== '');
+  const videos = document.getElementById('mediaVideos').value.split('\n').filter(line => line.trim() !== '');
+  
   try {
-    const images = document.getElementById('mediaImages').value
-      .split('\n')
-      .map(url => url.trim())
-      .filter(url => url.length > 0);
-    
-    const videos = document.getElementById('mediaVideos').value
-      .split('\n')
-      .map(url => url.trim())
-      .filter(url => url.length > 0);
-    
-    const mediaData = {
-      images,
-      videos
-    };
-    
-    await updateSeasonMedia(currentSeasonId, mediaData);
-    alert('Media saved successfully!');
-    updateMediaPreview(mediaData);
+    await updateSeasonMedia(currentSeasonId, { images, videos });
+    showNotification('Media saved successfully!', 'success');
   } catch (error) {
     console.error('Error saving media:', error);
-    alert('Error saving media');
+    showNotification('Error saving media', 'error');
   }
 }
 
-/**
- * Update media preview
- */
-function updateMediaPreview(media) {
-  const preview = document.getElementById('mediaPreview');
-  const previewContent = document.getElementById('mediaPreviewContent');
-  
-  if (!media || (!media.images?.length && !media.videos?.length)) {
-    preview.style.display = 'none';
-    return;
-  }
-  
-  preview.style.display = 'block';
-  previewContent.innerHTML = '<div class="alert alert-info mb-md"><strong>Preview:</strong> This is how your media will appear on the season page.</div>';
-  
-  // Images
-  if (media.images?.length > 0) {
-    const imagesSection = document.createElement('div');
-    imagesSection.innerHTML = `<h4 class="mb-sm">📸 Photos (${media.images.length})</h4><div class="media-grid">`;
-    media.images.forEach((url, index) => {
-      // Check if it's a share link
-      if (isGooglePhotosShareLink(url)) {
-        // Show as clickable card for share links
-        const card = document.createElement('a');
-        card.href = url;
-        card.target = '_blank';
-        card.rel = 'noopener noreferrer';
-        card.className = 'media-item google-photos-card';
-        card.style.cssText = 'text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, #4285f4 0%, #34a853 100%); color: white;';
-        card.innerHTML = `
-          <div style="font-size: 2.5rem; margin-bottom: var(--spacing-sm);">📷</div>
-          <div style="font-weight: 600; text-align: center; padding: 0 var(--spacing-sm); font-size: 0.875rem;">View Photo ${index + 1}</div>
-          <div style="font-size: 0.75rem; margin-top: var(--spacing-xs); opacity: 0.9;">Click to open</div>
-          <div style="font-size: 0.65rem; margin-top: var(--spacing-xs); opacity: 0.7; padding: 0 var(--spacing-sm); text-align: center;">⚠️ Share link detected</div>
-        `;
-        imagesSection.querySelector('.media-grid').appendChild(card);
-      } else {
-        // Direct image URL
-        const directUrl = convertGooglePhotosUrl(url);
-        const img = document.createElement('div');
-        img.className = 'media-item';
-        img.innerHTML = `
-          <img src="${directUrl}" alt="Gallery image ${index + 1}" loading="lazy" 
-               onerror="this.parentElement.innerHTML='<div class=\\'media-placeholder\\'><div class=\\'media-placeholder-icon\\'>🖼️</div><div class=\\'media-placeholder-text\\'>Image ${index + 1}<br>Failed to load<br><small style=\\'font-size:0.7rem;opacity:0.7;margin-top:4px;\\'>Check if URL is a direct image link</small></div></div>'">
-        `;
-        imagesSection.querySelector('.media-grid').appendChild(img);
-      }
-    });
-    imagesSection.innerHTML += '</div>';
-    previewContent.appendChild(imagesSection);
-  } else {
-    const placeholder = document.createElement('div');
-    placeholder.className = 'media-grid';
-    placeholder.innerHTML = `
-      <div class="media-placeholder">
-        <div class="media-placeholder-icon">📸</div>
-        <div class="media-placeholder-text">No photos yet<br>Add Google Photos URLs above</div>
-      </div>
-    `;
-    const imagesSection = document.createElement('div');
-    imagesSection.innerHTML = '<h4 class="mb-sm">📸 Photos</h4>';
-    imagesSection.appendChild(placeholder);
-    previewContent.appendChild(imagesSection);
-  }
-  
-  // Videos
-  if (media.videos?.length > 0) {
-    const videosSection = document.createElement('div');
-    videosSection.innerHTML = `<h4 class="mb-sm mt-md">🎥 Videos (${media.videos.length})</h4><div class="media-grid">`;
-    media.videos.forEach((videoUrl, index) => {
-      const videoId = extractYouTubeId(videoUrl);
-      if (videoId) {
-        const video = document.createElement('div');
-        video.className = 'media-item video';
-        video.innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
-        videosSection.querySelector('.media-grid').appendChild(video);
-      } else {
-        const placeholder = document.createElement('div');
-        placeholder.className = 'media-placeholder';
-        placeholder.innerHTML = `
-          <div class="media-placeholder-icon">⚠️</div>
-          <div class="media-placeholder-text">Invalid URL ${index + 1}</div>
-        `;
-        videosSection.querySelector('.media-grid').appendChild(placeholder);
-      }
-    });
-    videosSection.innerHTML += '</div>';
-    previewContent.appendChild(videosSection);
-  } else {
-    const placeholder = document.createElement('div');
-    placeholder.className = 'media-grid';
-    placeholder.innerHTML = `
-      <div class="media-placeholder">
-        <div class="media-placeholder-icon">🎥</div>
-        <div class="media-placeholder-text">No videos yet<br>Add YouTube URLs above</div>
-      </div>
-    `;
-    const videosSection = document.createElement('div');
-    videosSection.innerHTML = '<h4 class="mb-sm mt-md">🎥 Videos</h4>';
-    videosSection.appendChild(placeholder);
-    previewContent.appendChild(videosSection);
-  }
-  
-}
-
-/**
- * Extract YouTube video ID from URL
- */
-function extractYouTubeId(url) {
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : null;
-}
-
-/**
- * Check if URL is a Google Photos share link (not a direct image URL)
- */
-function isGooglePhotosShareLink(url) {
-  if (!url) return false;
-  return url.includes('photos.app.goo.gl') || 
-         (url.includes('photos.google.com') && !url.includes('lh3.googleusercontent.com'));
-}
-
-/**
- * Convert Google Photos share URL to direct image URL
- */
-function convertGooglePhotosUrl(url) {
-  if (!url) return url;
-  
-  // If it's a share link, return null to indicate it needs special handling
-  if (isGooglePhotosShareLink(url)) {
-    return null;
-  }
-  
-  // If it's already a direct Google Photos URL, return as-is
-  if (url.includes('lh3.googleusercontent.com') || url.includes('googleusercontent.com')) {
-    // Ensure it's a direct image URL with proper parameters
-    if (url.includes('/p/') || url.includes('/d/')) {
-      const separator = url.includes('?') ? '&' : '?';
-      return url + separator + 'w=800&h=800&fit=crop';
-    }
-    return url;
-  }
-  
-  // For any other URL, return as-is
-  return url;
-}
-
-/**
- * Load tournament settings
- */
-async function loadTournamentSettings() {
-  try {
-    const meta = await getTournamentMeta();
-    if (meta) {
-      document.getElementById('tournamentTagline').value = meta.tagline || '';
-      document.getElementById('tournamentWhy').value = meta.why || '';
-      document.getElementById('tournamentVision').value = meta.vision || '';
-      document.getElementById('tournamentOrganizer').value = meta.organizer || '';
-      document.getElementById('tournamentOrganizerTitle').value = meta.organizerTitle || '';
-      document.getElementById('tournamentOrganizerProfile').value = meta.organizerProfile || '';
-      document.getElementById('tournamentOrganizerPhoto').value = meta.organizerPhoto || '';
-      document.getElementById('tournamentHeroImage').value = meta.heroImage || '';
-      document.getElementById('tournamentInstagramUrl').value = meta.instagramUrl || '';
-      
-      // Preview organizer photo
-      if (meta.organizerPhoto) {
-        const organizerPreview = document.getElementById('organizerPhotoPreview');
-        const organizerPreviewImg = document.getElementById('organizerPreviewImg');
-        organizerPreviewImg.src = meta.organizerPhoto;
-        organizerPreview.style.display = 'block';
-      }
-
-      // Preview hero image
-      if (meta.heroImage) {
-        const preview = document.getElementById('heroImagePreview');
-        const previewImg = document.getElementById('heroPreviewImg');
-        previewImg.src = meta.heroImage;
-        preview.style.display = 'block';
-      }
-      
-      // Image preview on change
-      document.getElementById('tournamentHeroImage').addEventListener('input', (e) => {
-        const url = e.target.value.trim();
-        const preview = document.getElementById('heroImagePreview');
-        const previewImg = document.getElementById('heroPreviewImg');
-        if (url) {
-          previewImg.src = url;
-          preview.style.display = 'block';
-        } else {
-          preview.style.display = 'none';
-        }
-      });
-
-      // Organizer photo preview on change
-      document.getElementById('tournamentOrganizerPhoto').addEventListener('input', (e) => {
-        const url = e.target.value.trim();
-        const preview = document.getElementById('organizerPhotoPreview');
-        const previewImg = document.getElementById('organizerPreviewImg');
-        if (url) {
-          previewImg.src = url;
-          preview.style.display = 'block';
-        } else {
-          preview.style.display = 'none';
-        }
-      });
-    }
-  } catch (error) {
-    console.error('Error loading tournament settings:', error);
-  }
-}
-
-/**
- * Handle tournament settings submit
- */
 async function handleTournamentSubmit(e) {
   e.preventDefault();
   
+  const meta = {
+    tagline: document.getElementById('tournamentTagline').value,
+    why: document.getElementById('tournamentWhy').value,
+    vision: document.getElementById('tournamentVision').value,
+    organizer: document.getElementById('tournamentOrganizer').value,
+    organizerTitle: document.getElementById('tournamentOrganizerTitle').value,
+    organizerProfile: document.getElementById('tournamentOrganizerProfile').value,
+    organizerPhoto: document.getElementById('tournamentOrganizerPhoto').value,
+    heroImage: document.getElementById('tournamentHeroImage').value,
+    instagramUrl: document.getElementById('tournamentInstagramUrl').value
+  };
+  
   try {
-    const metaData = {
-      tagline: document.getElementById('tournamentTagline').value.trim(),
-      why: document.getElementById('tournamentWhy').value.trim(),
-      vision: document.getElementById('tournamentVision').value.trim(),
-      organizer: document.getElementById('tournamentOrganizer').value.trim(),
-      organizerTitle: document.getElementById('tournamentOrganizerTitle').value.trim(),
-      organizerProfile: document.getElementById('tournamentOrganizerProfile').value.trim(),
-      organizerPhoto: document.getElementById('tournamentOrganizerPhoto').value.trim(),
-      heroImage: document.getElementById('tournamentHeroImage').value.trim(),
-      instagramUrl: document.getElementById('tournamentInstagramUrl').value.trim()
-    };
-    
-    await updateTournamentMeta(metaData);
-    alert('Tournament settings saved successfully!');
+    await updateTournamentMeta(meta);
+    showNotification('Tournament settings saved successfully!', 'success');
   } catch (error) {
     console.error('Error saving tournament settings:', error);
-    alert('Error saving tournament settings');
+    showNotification('Error saving tournament settings', 'error');
   }
 }
 
+/**
+ * Handle add points team form submission
+ */
+async function handleAddPointsTeam(e) {
+  e.preventDefault();
+  if (!currentSeasonId) {
+    showNotification('Please select a season first', 'error');
+    return;
+  }
+  
+  const teamData = {
+    teamName: document.getElementById('pointsTeamName').value,
+    played: parseInt(document.getElementById('pointsPlayed').value) || 0,
+    wins: parseInt(document.getElementById('pointsWins').value) || 0,
+    losses: parseInt(document.getElementById('pointsLosses').value) || 0,
+    ties: parseInt(document.getElementById('pointsTies').value) || 0,
+    nr: parseInt(document.getElementById('pointsNr').value) || 0,
+    points: parseInt(document.getElementById('pointsPoints').value) || 0,
+    netRunRate: document.getElementById('pointsNrr').value || '0'
+  };
+  
+  try {
+    // Get existing points and add new team
+    const points = await getPointsTable(currentSeasonId);
+    const updatedPoints = points ? [...points, teamData] : [teamData];
+    await updatePointsTable(currentSeasonId, updatedPoints);
+    
+    // Reset form
+    e.target.reset();
+    
+    // Reload points table
+    await loadPointsTable();
+    showNotification('Team added to points table!', 'success');
+  } catch (error) {
+    console.error('Error adding points team:', error);
+    showNotification('Error adding team to points table', 'error');
+  }
+}
 
-// Initialize dashboard when page loads
-init();
+/**
+ * Handle add batting stats form submission
+ */
+async function handleAddBattingStats(e) {
+  e.preventDefault();
+  if (!currentSeasonId) {
+    showNotification('Please select a season first', 'error');
+    return;
+  }
+  
+  const battingStats = {
+    name: document.getElementById('battingPlayerName').value,
+    team: document.getElementById('battingTeam').value,
+    matches: parseInt(document.getElementById('battingMatches').value) || 0,
+    innings: parseInt(document.getElementById('battingInnings').value) || 0,
+    runs: parseInt(document.getElementById('battingRuns').value) || 0,
+    balls: parseInt(document.getElementById('battingBalls').value) || 0,
+    fifties: parseInt(document.getElementById('battingFifties').value) || 0,
+    hundreds: parseInt(document.getElementById('battingHundreds').value) || 0
+  };
+  
+  try {
+    // Get existing stats and add new batting entry
+    const stats = await getSeasonStats(currentSeasonId);
+    const existingBatting = stats?.batting || [];
+    const updatedBatting = [...existingBatting, battingStats];
+    
+    await updateStats(currentSeasonId, {
+      batting: updatedBatting,
+      bowling: stats?.bowling || []
+    });
+    
+    // Reset form
+    e.target.reset();
+    
+    // Reload stats
+    await loadStats();
+    showNotification('Batting stats added!', 'success');
+  } catch (error) {
+    console.error('Error adding batting stats:', error);
+    showNotification('Error adding batting stats', 'error');
+  }
+}
+
+/**
+ * Handle add bowling stats form submission
+ */
+async function handleAddBowlingStats(e) {
+  e.preventDefault();
+  if (!currentSeasonId) {
+    showNotification('Please select a season first', 'error');
+    return;
+  }
+  
+  const bowlingStats = {
+    name: document.getElementById('bowlingPlayerName').value,
+    team: document.getElementById('bowlingTeam').value,
+    matches: parseInt(document.getElementById('bowlingMatches').value) || 0,
+    wickets: parseInt(document.getElementById('bowlingWickets').value) || 0,
+    runs: parseInt(document.getElementById('bowlingRuns').value) || 0,
+    overs: document.getElementById('bowlingOvers').value,
+    economy: document.getElementById('bowlingEconomy').value,
+    fiveWicketHauls: parseInt(document.getElementById('bowlingFiveWicket').value) || 0
+  };
+  
+  try {
+    // Get existing stats and add new bowling entry
+    const stats = await getSeasonStats(currentSeasonId);
+    const existingBowling = stats?.bowling || [];
+    const updatedBowling = [...existingBowling, bowlingStats];
+    
+    await updateStats(currentSeasonId, {
+      batting: stats?.batting || [],
+      bowling: updatedBowling
+    });
+    
+    // Reset form
+    e.target.reset();
+    
+    // Reload stats
+    await loadStats();
+    showNotification('Bowling stats added!', 'success');
+  } catch (error) {
+    console.error('Error adding bowling stats:', error);
+    showNotification('Error adding bowling stats', 'error');
+  }
+}
+
+// Global functions for inline handlers
+window.editMatch = async function(matchId) {
+  showNotification('Edit match functionality - TODO', 'info');
+};
+
+window.deleteMatch = async function(matchId) {
+  if (confirm('Are you sure you want to delete this match?')) {
+    try {
+      await deleteMatch(currentSeasonId, matchId);
+      await loadMatches();
+      showNotification('Match deleted successfully!', 'success');
+    } catch (error) {
+      console.error('Error deleting match:', error);
+      showNotification('Error deleting match', 'error');
+    }
+  }
+};
+
+window.editTeam = async function(teamId) {
+  if (!currentSeasonId) {
+    showNotification('Please select a season first', 'error');
+    return;
+  }
+  
+  try {
+    const teams = await getSeasonTeams(currentSeasonId);
+    const team = teams.find(t => t.id === teamId);
+    
+    if (!team) {
+      showNotification('Team not found', 'error');
+      return;
+    }
+    
+    const modal = createModal(
+      'Edit Team',
+      `
+        <form id="editTeamForm">
+          <input type="hidden" id="editTeamId" value="${teamId}">
+          <div class="form-group">
+            <label for="editTeamName" class="form-label">Team Name</label>
+            <input type="text" id="editTeamName" class="form-input" value="${team.name || ''}" required>
+          </div>
+          <div class="form-group">
+            <label for="editTeamCaptain" class="form-label">Captain</label>
+            <input type="text" id="editTeamCaptain" class="form-input" value="${team.captain || ''}">
+          </div>
+          <div class="form-group">
+            <label for="editTeamPlayers" class="form-label">Players (comma separated)</label>
+            <textarea id="editTeamPlayers" class="form-textarea" rows="3" placeholder="Player 1, Player 2, Player 3...">${(team.players || []).join(', ')}</textarea>
+          </div>
+          <div class="form-group">
+            <label for="editTeamDescription" class="form-label">Description</label>
+            <textarea id="editTeamDescription" class="form-textarea" rows="2">${team.description || ''}</textarea>
+          </div>
+        </form>
+      `,
+      `
+        <button type="button" class="btn btn-secondary" data-action="close-modal">Cancel</button>
+        <button type="submit" form="editTeamForm" class="btn btn-primary">Save Changes</button>
+      `
+    );
+    
+    modal.querySelector('[data-action="close-modal"]').addEventListener('click', () => {
+      modal.classList.remove('active');
+      setTimeout(() => modal.remove(), 300);
+    });
+    
+    modal.querySelector('#editTeamForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const teamData = {
+        name: document.getElementById('editTeamName').value,
+        captain: document.getElementById('editTeamCaptain').value,
+        players: document.getElementById('editTeamPlayers').value.split(',').map(p => p.trim()).filter(p => p),
+        description: document.getElementById('editTeamDescription').value
+      };
+      
+      try {
+        await updateTeam(currentSeasonId, teamId, teamData);
+        modal.classList.remove('active');
+        setTimeout(() => modal.remove(), 300);
+        await loadTeams();
+        showNotification('Team updated successfully!', 'success');
+      } catch (error) {
+        console.error('Error updating team:', error);
+        showNotification('Error updating team', 'error');
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error loading team:', error);
+    showNotification('Error loading team', 'error');
+  }
+};
+
+window.deleteTeam = async function(teamId) {
+  if (confirm('Are you sure you want to delete this team?')) {
+    try {
+      await deleteTeam(currentSeasonId, teamId);
+      await loadTeams();
+      showNotification('Team deleted successfully!', 'success');
+    } catch (error) {
+      console.error('Error deleting team:', error);
+      showNotification('Error deleting team', 'error');
+    }
+  }
+};
+
+window.savePoints = async function(teamName) {
+  showNotification('Points saved!', 'success');
+};
+
+// Initialize dashboard
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}

@@ -56,14 +56,23 @@ export async function applyTournamentHeroImage(heroSection) {
 
 /**
  * Get all seasons for the tournament
+ * Sorts by createdAt descending (newest first), falls back to ID if createdAt missing
  */
 export async function getAllSeasons() {
   const seasonsRef = collection(db, 'tournaments', TOURNAMENT_ID, 'seasons');
   const querySnapshot = await getDocs(seasonsRef);
-  return querySnapshot.docs.map(doc => ({
+  const seasons = querySnapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data()
-  })).sort((a, b) => a.id.localeCompare(b.id));
+  }));
+  
+  // Sort by createdAt descending (newest first), fallback to id
+  return seasons.sort((a, b) => {
+    if (a.createdAt && b.createdAt) {
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    }
+    return a.id.localeCompare(b.id);
+  });
 }
 
 /**
@@ -184,6 +193,13 @@ export async function deleteTeam(seasonId, teamId) {
 export async function getPointsTable(seasonId) {
   const seasonData = await getSeasonData(seasonId);
   return seasonData?.pointsTable || [];
+}
+
+/**
+ * Get points for a season (alias for getPointsTable)
+ */
+export async function getSeasonPoints(seasonId) {
+  return await getPointsTable(seasonId);
 }
 
 /**

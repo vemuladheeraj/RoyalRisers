@@ -1,6 +1,6 @@
 /**
- * Fixtures Page Logic
- * Displays all matches for the selected season
+ * Fixtures Page Logic - Modernized
+ * Displays match schedule with filtering
  */
 import { getSeasonMatches, getSeasonData, applyTournamentHeroImage } from './firestore-helpers.js';
 
@@ -10,13 +10,16 @@ const tournamentId = urlParams.get('tournamentId') || 'royal-risers-cup';
 const seasonId = urlParams.get('seasonId');
 
 // DOM Elements
-const pageTitle = document.getElementById('pageTitle');
 const seasonInfo = document.getElementById('seasonInfo');
 const fixturesContent = document.getElementById('fixturesContent');
 const seasonLink = document.getElementById('seasonLink');
 const pointsLink = document.getElementById('pointsLink');
 const teamsLink = document.getElementById('teamsLink');
 const statsLink = document.getElementById('statsLink');
+const matchFilter = document.getElementById('matchFilter');
+
+// Store all matches for filtering
+let allMatches = [];
 
 /**
  * Update navigation links
@@ -24,10 +27,10 @@ const statsLink = document.getElementById('statsLink');
 function updateNavLinks() {
   if (seasonId) {
     const baseUrl = `?tournamentId=${tournamentId}&seasonId=${seasonId}`;
-    seasonLink.href = `season.html${baseUrl}`;
-    pointsLink.href = `points.html${baseUrl}`;
-    teamsLink.href = `teams.html${baseUrl}`;
-    statsLink.href = `stats.html${baseUrl}`;
+    if (seasonLink) seasonLink.href = `season.html${baseUrl}`;
+    if (pointsLink) pointsLink.href = `points.html${baseUrl}`;
+    if (teamsLink) teamsLink.href = `teams.html${baseUrl}`;
+    if (statsLink) statsLink.href = `stats.html${baseUrl}`;
   }
 }
 
@@ -35,13 +38,14 @@ function updateNavLinks() {
  * Format date for display
  */
 function formatDate(dateString) {
-  if (!dateString) return 'TBD';
+  if (!dateString) return 'Date TBD';
   try {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-IN', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
     });
   } catch {
     return dateString;
@@ -49,67 +53,134 @@ function formatDate(dateString) {
 }
 
 /**
- * Render fixtures
+ * Render matches with modern card design
  */
-function renderFixtures(matches) {
+function renderMatches(matches) {
+  if (!fixturesContent) return;
+  
   if (!matches || matches.length === 0) {
-    fixturesContent.innerHTML = '<p class="empty-state">No fixtures available for this season.</p>';
+    fixturesContent.innerHTML = `
+      <div class="empty-state">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.5;">
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+        <p>No matches scheduled yet.</p>
+      </div>
+    `;
     return;
   }
 
-  let html = '<div class="table-container"><table><thead><tr>';
-  html += '<th>Date</th><th>Team 1</th><th>vs</th><th>Team 2</th><th>Venue</th><th>Status</th>';
-  html += '</tr></thead><tbody>';
-
-  matches.forEach(match => {
-    const status = match.status || 'Scheduled';
-    const statusClass = status === 'Completed' ? 'badge-success' : 
-                       status === 'Live' ? 'badge-warning' : 'badge-primary';
-    
-    html += '<tr>';
-    html += `<td>${formatDate(match.date)}</td>`;
-    html += `<td>${match.team1 || 'TBD'}</td>`;
-    html += '<td>vs</td>';
-    html += `<td>${match.team2 || 'TBD'}</td>`;
-    html += `<td>${match.venue || 'TBD'}</td>`;
-    html += `<td><span class="badge ${statusClass}">${status}</span></td>`;
-    html += '</tr>';
+  // Sort matches by date
+  const sortedMatches = [...matches].sort((a, b) => {
+    const dateA = a.date ? new Date(a.date) : new Date(0);
+    const dateB = b.date ? new Date(b.date) : new Date(0);
+    return dateA - dateB;
   });
 
-  html += '</tbody></table></div>';
+  let html = '';
+  
+  sortedMatches.forEach((match, index) => {
+    const isCompleted = match.status === 'completed';
+    const team1Name = match.team1 || 'TBD';
+    const team2Name = match.team2 || 'TBD';
+    
+    html += `
+      <div class="match-card" style="animation-delay: ${index * 50}ms;">
+        <div class="match-header">
+          <span class="match-date">${formatDate(match.date)}</span>
+          <span class="match-venue">${match.venue || 'Venue TBD'}</span>
+        </div>
+        <div class="match-teams">
+          <div class="match-team">
+            <div class="match-team-name">${team1Name}</div>
+          </div>
+          <span class="match-vs">VS</span>
+          <div class="match-team">
+            <div class="match-team-name">${team2Name}</div>
+          </div>
+        </div>
+        ${match.result ? `
+          <div class="match-result">
+            <strong>Result:</strong> ${match.result}
+          </div>
+        ` : ''}
+        ${isCompleted ? '<span class="badge badge-success" style="margin-top: var(--spacing-sm);">Completed</span>' : ''}
+      </div>
+    `;
+  });
+
   fixturesContent.innerHTML = html;
 }
 
 /**
- * Load fixtures data
+ * Filter matches
  */
-async function loadFixtures() {
-  await applyTournamentHeroImage(document.getElementById('heroSection'));
+function filterMatches(filter) {
+  if (filter === 'all') {
+    renderMatches(allMatches);
+  } else if (filter === 'completed') {
+    const completed = allMatches.filter(m => m.status === 'completed');
+    renderMatches(completed);
+  } else if (filter === 'upcoming') {
+    const upcoming = allMatches.filter(m => m.status !== 'completed');
+    renderMatches(upcoming);
+  }
+}
+
+/**
+ * Setup filter functionality
+ */
+function setupFilter() {
+  if (matchFilter) {
+    matchFilter.addEventListener('change', (e) => {
+      filterMatches(e.target.value);
+    });
+  }
+}
+
+/**
+ * Load matches data
+ */
+async function loadMatches() {
+  const heroSection = document.getElementById('heroSection');
+  if (heroSection) {
+    await applyTournamentHeroImage(heroSection);
+  }
+  
   if (!seasonId) {
-    pageTitle.textContent = 'Fixtures - Error';
-    seasonInfo.textContent = 'No season selected';
-    fixturesContent.innerHTML = '<p class="alert alert-error">Please select a season from the home page.</p>';
+    if (seasonInfo) seasonInfo.textContent = 'No season selected';
+    if (fixturesContent) {
+      fixturesContent.innerHTML = '<div class="alert alert-error">Please select a season from the home page.</div>';
+    }
     return;
   }
 
   try {
     // Load season info
     const seasonData = await getSeasonData(seasonId);
-    if (seasonData) {
+    if (seasonData && seasonInfo) {
       const seasonDisplay = seasonId.replace('s', 'Season ').replace('-', ' ');
       seasonInfo.textContent = seasonDisplay;
     }
 
     // Load matches
     const matches = await getSeasonMatches(seasonId);
-    renderFixtures(matches);
+    allMatches = matches || [];
+    renderMatches(allMatches);
     updateNavLinks();
+    setupFilter();
 
   } catch (error) {
-    console.error('Error loading fixtures:', error);
-    fixturesContent.innerHTML = '<p class="alert alert-error">Error loading fixtures. Please try again later.</p>';
+    console.error('Error loading matches:', error);
+    if (fixturesContent) {
+      fixturesContent.innerHTML = '<div class="alert alert-error">Error loading fixtures. Please try again later.</div>';
+    }
   }
 }
 
-// Initialize page
-loadFixtures();
+// Initialize
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', loadMatches);
+} else {
+  loadMatches();
+}

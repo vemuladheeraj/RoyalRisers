@@ -5,12 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Points Table - Royal Risers Cup</title>
   <link rel="stylesheet" href="css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
 <body>
-  <!-- Header -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
   <header>
-    <nav class="container">
-      <a class="logo" href="index.html">Royal Risers Cup</a>
+    <nav class="container" aria-label="Main navigation">
+      <a class="logo" href="index.html">
+        <span class="logo-icon" aria-hidden="true"></span>
+        Royal Risers Cup
+      </a>
+      <button class="mobile-menu-toggle" aria-label="Toggle navigation menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
       <ul class="nav-links">
         <li><a href="index.html">Home</a></li>
         <li><a href="#" id="seasonLink">Season</a></li>
@@ -22,17 +31,21 @@
     </nav>
   </header>
 
-  <!-- Page Header -->
   <section class="hero hero-sub" id="heroSection">
-    <div class="hero-bg-graphic" aria-hidden="true"></div>
+    <div class="hero-bg-graphic"></div>
     <div class="container">
-      <h1 id="pageTitle">Points Table</h1>
+      <nav aria-label="Breadcrumb" class="breadcrumb">
+        <ol class="breadcrumb-list">
+          <li class="breadcrumb-item"><a href="index.html" class="breadcrumb-home" aria-label="Home">Home</a></li>
+          <li class="breadcrumb-item active" aria-current="page">Points Table</li>
+        </ol>
+      </nav>
+      <h1>Points Table</h1>
       <p id="seasonInfo">Loading season information...</p>
     </div>
   </section>
 
-  <!-- Main Content -->
-  <main class="container section">
+  <main class="container section" id="main-content">
     <div class="card">
       <div class="card-header">
         <h2 class="card-title">League Standings</h2>
@@ -43,16 +56,29 @@
     </div>
   </main>
 
-  <!-- Footer -->
   <footer>
-    <div class="footer-links">
-      <a href="index.html">Home</a>
-      <a href="developer-profile.html">Developer Profile</a>
-      <a href="https://cricheroes.com/team-profile/9230662/royal-risers-hyd/profile" target="_blank" rel="noopener noreferrer">CricHeroes</a>
+    <div class="container">
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="developer-profile.html">Developer Profile</a>
+        <a href="https://cricheroes.com/team-profile/9230662/royal-risers-hyd/profile" target="_blank">CricHeroes</a>
+      </div>
+      <p class="text-muted">&copy; 2026 Royal Risers Cup. All rights reserved.</p>
     </div>
-    <p class="text-muted">&copy; 2026 Royal Risers Cup. All rights reserved.</p>
   </footer>
 
   <script type="module" src="js/points.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const menuToggle = document.querySelector('.mobile-menu-toggle');
+      const navLinks = document.querySelector('.nav-links');
+      if (menuToggle && navLinks) {
+        menuToggle.addEventListener('click', function() {
+          this.setAttribute('aria-expanded', navLinks.classList.toggle('active') ? 'true' : 'false');
+          navLinks.classList.toggle('active');
+        });
+      }
+    });
+  </script>
 </body>
 </html>
